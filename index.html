@@ -2,843 +2,539 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cleiton Ultimate - Gestão & GPS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <title>Cleiton PRO v9.3</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#0f172a', surface: '#ffffff' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; user-select: none; }
+        .page-container { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .page-active { display: block; opacity: 1; }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .safe-top { padding-top: env(safe-area-inset-top); }
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* bg-gray-100 */
-            padding-bottom: 6rem; /* Espaço para menu mobile se necessário */
+        #pocket-mode-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000; z-index: 9999; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            color: #333;
         }
 
-        /* Animação do GPS */
-        .gps-pulse {
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
         }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
-
-        /* Tabs Personalizadas */
-        .tab-btn {
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-        .tab-btn.active {
-            border-color: #2563eb; /* blue-600 */
-            color: #2563eb;
-            font-weight: 700;
-            background-color: white;
-        }
-        .tab-btn.active-private {
-            border-color: #dc2626; /* red-600 */
-            color: #dc2626;
-        }
-
-        /* Toast Notification */
-        .toast {
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .toast.show {
-            transform: translateY(0);
-        }
-
-        /* Scrollbar suave */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-track { background: transparent; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body class="text-gray-800">
+<body class="bg-slate-100 h-screen flex flex-col overflow-hidden">
 
-    <!-- CABEÇALHO COM RESUMO (Vindo do App 2) -->
-    <header class="bg-blue-800 text-white p-4 shadow-lg sticky top-0 z-40">
-        <div class="max-w-5xl mx-auto">
-            <div class="flex justify-between items-center mb-2">
-                <div>
-                    <h1 class="text-xl md:text-2xl font-black tracking-tight">Cleiton<span class="text-blue-300 font-light">Gestão</span></h1>
-                    <p class="text-xs text-blue-200 opacity-80">Frota, GPS e Financeiro</p>
+    <!-- CABEÇALHO -->
+    <header class="bg-primary text-white pt-safe-top pb-4 px-6 shadow-lg z-20 shrink-0">
+        <div class="flex justify-between items-center mt-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600/20 p-2 rounded-lg">
+                    <i class="ph-fill ph-truck text-2xl text-blue-400"></i>
                 </div>
-                <div class="text-right">
-                    <div class="text-xs uppercase opacity-70">Saldo Geral (Est.)</div>
-                    <div id="header-balance" class="font-bold text-lg md:text-xl">Calculando...</div>
+                <div>
+                    <h1 class="font-black text-lg leading-none">Cleiton<span class="text-blue-500">PRO</span></h1>
+                    <p id="system-status" class="text-[9px] text-green-400 uppercase font-bold mt-1 tracking-wider">GPS Tracker v9.3</p>
                 </div>
             </div>
-            
-            <!-- Mini Dashboard Header -->
-            <div class="grid grid-cols-3 gap-2 text-center mt-2">
-                <div class="bg-blue-900/50 rounded p-1">
-                    <p class="text-[10px] uppercase opacity-70">KM Total</p>
-                    <p id="header-km" class="font-semibold text-sm">0.0</p>
-                </div>
-                <div class="bg-blue-900/50 rounded p-1">
-                    <p class="text-[10px] uppercase opacity-70">Gasto R$</p>
-                    <p id="header-cost" class="font-semibold text-sm">0,00</p>
-                </div>
-                <div class="bg-blue-900/50 rounded p-1">
-                    <p class="text-[10px] uppercase opacity-70">Privado</p>
-                    <p id="header-private" class="font-semibold text-sm">0.0</p>
-                </div>
+            <div class="text-right">
+                <p class="text-[9px] text-slate-400 uppercase font-bold">Odómetro Atual</p>
+                <p id="header-odometer" class="text-lg font-mono font-black text-white tracking-widest">---</p>
             </div>
         </div>
     </header>
 
-    <!-- NAVEGAÇÃO DE ABAS (Híbrido) -->
-    <div class="bg-gray-200 border-b border-gray-300 overflow-x-auto sticky top-[108px] md:top-[90px] z-30">
-        <div class="max-w-5xl mx-auto flex min-w-max">
-            <button onclick="switchTab('tab-gps')" class="tab-btn active px-6 py-3 font-medium text-sm flex items-center gap-2" data-target="tab-gps">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                GPS & Registro
-            </button>
-            <button onclick="switchTab('tab-history')" class="tab-btn px-6 py-3 font-medium text-gray-600 text-sm flex items-center gap-2" data-target="tab-history">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                Histórico
-            </button>
-            <button onclick="switchTab('tab-private')" class="tab-btn px-6 py-3 font-medium text-gray-600 text-sm flex items-center gap-2 hover:text-red-500" data-target="tab-private">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Particular
-            </button>
-            <button onclick="switchTab('tab-stats')" class="tab-btn px-6 py-3 font-medium text-gray-600 text-sm flex items-center gap-2" data-target="tab-stats">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
-                Indicadores
-            </button>
+    <!-- MODO BOLSO -->
+    <div id="pocket-mode-overlay">
+        <i class="ph-fill ph-lock-key text-6xl mb-4 animate-pulse"></i>
+        <p class="text-xs font-bold uppercase tracking-widest mb-10 text-zinc-500">Modo Bolso Ativo</p>
+        <div class="text-center">
+            <p class="text-5xl font-black text-zinc-900" id="pocket-dist">0.00</p>
+            <p class="text-[10px] text-zinc-600 uppercase font-bold mt-2">Toque 2x para sair</p>
         </div>
     </div>
 
-    <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
-
-        <!-- ================= ABA 1: GPS E REGISTRO (HÍBRIDO) ================= -->
-        <div id="tab-gps" class="tab-content block animate-fade">
-            
-            <!-- Painel GPS (Visual do App 2) -->
-            <div class="bg-white rounded-xl shadow-md border-l-4 border-blue-600 p-6 mb-6">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div class="flex items-center gap-4 w-full md:w-auto">
-                        <div id="gps-icon" class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 transition-all duration-500">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-800">Rastreador Inteligente</h2>
-                            <p id="gps-status" class="text-sm text-gray-500">GPS Parado</p>
-                        </div>
-                    </div>
-
-                    <div class="text-center">
-                        <div id="live-km" class="text-4xl font-black text-gray-800 tabular-nums">0.00</div>
-                        <div class="text-xs font-bold text-blue-600 uppercase tracking-wider">KM Percorrido</div>
-                    </div>
-
-                    <div class="flex flex-col gap-2 w-full md:w-auto">
-                        <button id="btn-start" onclick="toggleGPS()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
-                            <span>INICIAR VIAGEM</span>
-                        </button>
-                        <button id="btn-stop" onclick="toggleGPS()" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
-                            <span>FINALIZAR E USAR</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Formulário de Registro (Dados do App 1) -->
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex justify-between items-center border-b pb-4 mb-4">
-                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Detalhes do Serviço
-                    </h3>
-                    <button type="button" onclick="clearForm()" class="text-xs text-gray-500 hover:text-red-500 underline">Limpar Formulário</button>
-                </div>
-
-                <form id="route-form" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Data</label>
-                            <input type="date" id="date" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Tipo de Serviço</label>
-                            <select id="service-type" onchange="toggleOtherService(this.value)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                                <option value="">Selecione...</option>
-                                <option value="Lançamento de cordoalha">1. Lançamento de cordoalha</option>
-                                <option value="Lançamento de cabo coaxial">2. Lançamento de cabo coaxial</option>
-                                <option value="Lançamento de fibra óptica">3. Lançamento de fibra óptica</option>
-                                <option value="Acompanhamento Coelba">4. Acompanhamento Coelba</option>
-                                <option value="Ordenamento Coelba">5. Ordenamento Coelba</option>
-                                <option value="Troca de poste">6. Troca de poste</option>
-                                <option value="Acionamento de plantão">7. Acionamento de plantão</option>
-                                <option value="Deslocamento">8. Deslocamento Simples</option>
-                                <option value="Outro">9. Outro...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="other-service-div" class="hidden">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Especifique o Serviço</label>
-                        <input type="text" id="other-service" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Responsável / Equipe</label>
-                        <input type="text" id="responsible" placeholder="Ex: João, Maria" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-
-                    <!-- Endereços Automáticos -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div>
-                            <label class="block text-[10px] font-bold text-green-600 uppercase mb-1 flex justify-between">
-                                <span>Origem (Saída)</span>
-                                <span class="text-gray-400 font-normal italic">Automático via GPS</span>
-                            </label>
-                            <input type="text" id="start-address" placeholder="Aguardando início..." class="w-full p-2 bg-white border border-gray-300 rounded text-sm focus:border-green-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-red-600 uppercase mb-1 flex justify-between">
-                                <span>Destino (Chegada)</span>
-                                <span class="text-gray-400 font-normal italic">Automático via GPS</span>
-                            </label>
-                            <input type="text" id="end-address" placeholder="Aguardando fim..." class="w-full p-2 bg-white border border-gray-300 rounded text-sm focus:border-red-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">KM Total</label>
-                            <input type="number" step="0.1" id="km-total" required class="w-full p-3 border-2 border-blue-100 bg-blue-50 rounded-lg text-blue-800 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Litros Abastecidos</label>
-                            <input type="number" step="0.01" id="liters" value="0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Valor (R$)</label>
-                            <input type="number" step="0.01" id="cost" value="0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Observações / Detalhes</label>
-                        <textarea id="notes" rows="2" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                    </div>
-
-                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-md transition transform active:scale-95 text-lg">
-                        SALVAR REGISTRO
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- ================= ABA 2: HISTÓRICO ================= -->
-        <div id="tab-history" class="tab-content hidden">
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-gray-800">Histórico de Rotas</h2>
-                    <div class="space-x-2">
-                        <button onclick="exportCSV()" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded border border-gray-300">Exportar CSV</button>
-                        <button onclick="confirmClear('routes')" class="text-sm text-red-500 hover:text-red-700 underline">Limpar</button>
-                    </div>
-                </div>
+    <!-- CONTEÚDO -->
+    <main class="flex-1 overflow-y-auto pb-24 relative">
+        <div id="view-home" class="page-container page-active p-5 space-y-4">
+            <!-- DISPLAY PRINCIPAL -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 text-center relative overflow-hidden">
+                <div id="recording-indicator" class="hidden absolute top-0 left-0 w-full h-1 bg-red-500 animate-pulse"></div>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-xs text-gray-500 uppercase border-b">
-                                <th class="p-3">Data/Serviço</th>
-                                <th class="p-3">Trajeto</th>
-                                <th class="p-3 text-center">KM</th>
-                                <th class="p-3 text-center">Custo</th>
-                                <th class="p-3 text-right">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-list" class="divide-y divide-gray-100 text-sm">
-                            <!-- Preenchido via JS -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="empty-history" class="text-center py-10 text-gray-400 italic hidden">Nenhuma rota registrada ainda.</div>
-            </div>
-        </div>
-
-        <!-- ================= ABA 3: PARTICULAR (DO APP 1) ================= -->
-        <div id="tab-private" class="tab-content hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Controle Particular</h2>
-                    <div class="text-right">
-                        <div class="text-xs text-gray-500 uppercase">Saldo Devedor</div>
-                        <div id="private-balance-display" class="text-2xl font-black text-red-600">0.0 km</div>
-                    </div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Percorrido nesta viagem</p>
+                <div class="flex justify-center items-baseline gap-1 mb-6">
+                    <h2 id="live-distance" class="text-7xl font-black text-slate-800 tracking-tighter">0.00</h2>
+                    <span class="text-xl font-bold text-slate-400">km</span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Formulário Débito -->
-                    <div class="bg-red-50 p-4 rounded-lg border border-red-100">
-                        <h3 class="font-bold text-red-800 mb-3 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            Registrar Viagem Pessoal (Débito)
-                        </h3>
-                        <form id="private-debit-form" class="space-y-3">
-                            <input type="date" id="priv-date" required class="w-full p-2 border rounded text-sm">
-                            <input type="text" id="priv-desc" placeholder="Motivo (ex: Mercado)" required class="w-full p-2 border rounded text-sm">
-                            <div class="flex gap-2">
-                                <input type="number" id="priv-km" placeholder="KM Total" required class="w-full p-2 border rounded text-sm">
-                                <button type="submit" class="bg-red-600 text-white px-4 rounded font-bold hover:bg-red-700">+</button>
-                            </div>
-                        </form>
-                    </div>
+                <div class="flex justify-center gap-4">
+                    <button id="btn-gps" onclick="toggleGPS()" class="h-20 w-20 bg-primary rounded-2xl text-white shadow-xl flex items-center justify-center active:scale-95 transition-all">
+                        <i id="icon-play" class="ph-fill ph-play text-3xl"></i>
+                        <i id="icon-stop" class="ph-fill ph-stop text-3xl hidden"></i>
+                    </button>
+                    <button id="btn-pocket" onclick="enablePocketMode()" class="h-20 w-20 bg-slate-100 rounded-2xl text-slate-400 border border-slate-200 flex flex-col items-center justify-center disabled:opacity-30" disabled>
+                        <i class="ph-fill ph-moon text-2xl mb-1"></i>
+                        <span class="text-[9px] font-bold uppercase">Bolso</span>
+                    </button>
+                </div>
 
-                    <!-- Formulário Crédito -->
-                    <div class="bg-green-50 p-4 rounded-lg border border-green-100">
-                        <h3 class="font-bold text-green-800 mb-3 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Abater KM / Restituir (Crédito)
-                        </h3>
-                        <form id="private-credit-form" class="space-y-3">
-                            <input type="date" id="cred-date" required class="w-full p-2 border rounded text-sm">
-                            <input type="text" id="cred-desc" placeholder="Obs (ex: Desconto em folha)" class="w-full p-2 border rounded text-sm">
-                            <div class="flex gap-2">
-                                <input type="number" id="cred-km" placeholder="KM Pago" required class="w-full p-2 border rounded text-sm">
-                                <button type="submit" class="bg-green-600 text-white px-4 rounded font-bold hover:bg-green-700">-</button>
-                            </div>
-                        </form>
+                <div class="mt-6 space-y-2">
+                    <div class="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                        <i class="ph-fill ph-map-pin text-blue-500"></i>
+                        <span>Origem:</span>
+                        <span id="live-origin-addr" class="text-slate-600 truncate max-w-[150px]">Aguardando início...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Tabela Particular -->
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-gray-700">Extrato Particular</h3>
-                    <button onclick="confirmClear('private')" class="text-xs text-red-500 hover:underline">Limpar Extrato</button>
+            <!-- DASHBOARD -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-primary text-white p-4 rounded-2xl shadow-lg">
+                    <p class="text-[10px] font-bold text-blue-300 uppercase">Gasto Total</p>
+                    <p id="dash-total-cost" class="text-2xl font-black">R$ 0,00</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 text-xs uppercase text-gray-500">
-                            <tr><th>Data</th><th>Desc</th><th class="text-right">Valor</th></tr>
-                        </thead>
-                        <tbody id="private-list" class="divide-y divide-gray-100"></tbody>
-                    </table>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Consumo Total</p>
+                    <p id="dash-total-liters" class="text-2xl font-black text-slate-800">0.0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">KM Percorridos</p>
+                    <p id="dash-total-km" class="text-2xl font-black text-slate-800">0.0</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Viagens</p>
+                    <p id="dash-trips-count" class="text-2xl font-black text-slate-800">0</p>
                 </div>
             </div>
         </div>
 
-        <!-- ================= ABA 4: INDICADORES ================= -->
-        <div id="tab-stats" class="tab-content hidden">
-            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Configuração</h2>
-                <div class="flex items-end gap-4">
-                    <div class="flex-1">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Média do Veículo (Km/L)</label>
-                        <input type="number" id="config-kml" step="0.1" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Ex: 10.5">
+        <!-- FORMULÁRIO DE REGISTRO -->
+        <div id="view-register" class="page-container p-5">
+            <h2 class="text-xl font-black text-slate-800 mb-4">Salvar Trajeto</h2>
+            <form id="route-form" class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Data</label>
+                        <input type="date" id="form-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold">
                     </div>
-                    <button onclick="saveConfig()" class="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-700">Salvar</button>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Responsável</label>
+                        <input type="text" id="form-resp" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold" placeholder="Nome">
+                    </div>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-white p-6 rounded-xl shadow-md text-center">
-                    <p class="text-gray-500 text-xs uppercase">Litros Estimados (Consumo)</p>
-                    <p id="stat-liters-used" class="text-2xl font-bold text-gray-800">0 L</p>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Tipo de Serviço</label>
+                    <select id="form-service" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold">
+                        <option value="Manutenção">Manutenção</option>
+                        <option value="Instalação">Instalação</option>
+                        <option value="Fibra Óptica">Lançamento de Fibra</option>
+                        <option value="Vistoria">Vistoria</option>
+                    </select>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-md text-center">
-                    <p class="text-gray-500 text-xs uppercase">Autonomia Real (Média)</p>
-                    <p id="stat-real-kml" class="text-2xl font-bold text-blue-600">0 Km/L</p>
-                    <p class="text-[10px] text-gray-400">Baseado nos abastecimentos lançados</p>
-                </div>
-            </div>
 
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Gastos por Serviço</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 text-left">
-                            <tr><th class="p-2">Serviço</th><th class="p-2">Qtd</th><th class="p-2 text-right">KM Total</th></tr>
-                        </thead>
-                        <tbody id="stats-service-list" class="divide-y divide-gray-100"></tbody>
-                    </table>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-blue-500 uppercase">Origem (GPS)</label>
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-map-pin-line text-blue-500"></i>
+                            <input type="text" id="form-start" class="w-full bg-transparent text-xs font-bold" placeholder="Local de partida">
+                        </div>
+                    </div>
+                    <hr class="border-slate-200">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-green-500 uppercase">Destino (GPS)</label>
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-flag-checkered text-green-500"></i>
+                            <input type="text" id="form-end" class="w-full bg-transparent text-xs font-bold" placeholder="Local de chegada">
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[9px] font-black text-blue-400 uppercase">Odómetro Inicial</label>
+                        <input type="number" id="form-km-init" class="w-full bg-white rounded-lg p-2 text-sm font-black" readonly>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-blue-600 uppercase">Final (Arredondado)</label>
+                        <input type="number" id="form-km-final" step="1" class="w-full bg-white border-2 border-blue-500 rounded-lg p-2 text-sm font-black" onchange="applyRounding(this)">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="navTo('view-home')" class="px-4 py-4 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs">Descartar</button>
+                    <button type="submit" class="flex-1 py-4 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg">CONCLUIR E SALVAR</button>
+                </div>
+            </form>
         </div>
 
+        <!-- HISTÓRICO -->
+        <div id="view-history" class="page-container p-5 space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-black text-slate-800">Relatórios</h2>
+                <button onclick="exportToExcel()" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold shadow-lg">
+                    <i class="ph-fill ph-file-xls text-base"></i> EXCEL
+                </button>
+            </div>
+            <div id="history-list" class="space-y-3 pb-20"></div>
+        </div>
+
+        <!-- CONFIGURAÇÕES -->
+        <div id="view-settings" class="page-container p-5 space-y-6">
+            <h2 class="text-xl font-black text-slate-800">Ajustes do Sistema</h2>
+            
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="ph ph-gauge text-blue-500 font-bold"></i>
+                    <h3 class="text-xs font-black uppercase text-slate-400">Ajustar Odómetro do Carro</h3>
+                </div>
+                <input type="number" id="config-odometer" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg font-black" placeholder="KM Atual">
+                <button onclick="saveSettings()" class="w-full bg-primary text-white py-3 rounded-xl text-xs font-bold">ATUALIZAR KM</button>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="ph ph-gas-pump text-orange-500 font-bold"></i>
+                    <h3 class="text-xs font-black uppercase text-slate-400">Consumo e Preço</h3>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">KM por Litro</label>
+                        <input type="number" id="config-kml" step="0.1" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-black">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Preço Litro (R$)</label>
+                        <input type="number" id="config-fuel-price" step="0.01" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-black">
+                    </div>
+                </div>
+                <button onclick="saveAutonomy()" class="w-full bg-orange-500 text-white py-3 rounded-xl text-xs font-bold">SALVAR TAXAS</button>
+            </div>
+
+            <button onclick="hardReset()" class="w-full text-red-500 text-[10px] font-bold uppercase mt-10 opacity-40 underline">Limpar todos os dados</button>
+        </div>
     </main>
 
-    <!-- TOAST NOTIFICATION -->
-    <div id="toast" class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-gray-800 text-white p-4 rounded-lg shadow-2xl flex items-center gap-3 z-50 toast">
-        <div id="toast-icon"></div>
-        <div id="toast-msg" class="text-sm font-medium"></div>
-    </div>
+    <!-- NAVEGAÇÃO -->
+    <nav class="fixed bottom-0 w-full bg-white border-t border-slate-200 safe-bottom z-30">
+        <div class="grid grid-cols-4 h-16">
+            <button onclick="navTo('view-home')" class="nav-btn text-blue-600 flex flex-col items-center justify-center gap-1" data-target="view-home">
+                <i class="ph-fill ph-navigation-arrow text-2xl"></i>
+                <span class="text-[9px] font-bold uppercase">Início</span>
+            </button>
+            <button onclick="navTo('view-register')" class="nav-btn text-slate-400 flex flex-col items-center justify-center gap-1" data-target="view-register">
+                <i class="ph-fill ph-plus-circle text-2xl"></i>
+                <span class="text-[9px] font-bold uppercase">Novo</span>
+            </button>
+            <button onclick="navTo('view-history')" class="nav-btn text-slate-400 flex flex-col items-center justify-center gap-1" data-target="view-history">
+                <i class="ph-fill ph-list-dashes text-2xl"></i>
+                <span class="text-[9px] font-bold uppercase">Logs</span>
+            </button>
+            <button onclick="navTo('view-settings')" class="nav-btn text-slate-400 flex flex-col items-center justify-center gap-1" data-target="view-settings">
+                <i class="ph-fill ph-gear text-2xl"></i>
+                <span class="text-[9px] font-bold uppercase">Config</span>
+            </button>
+        </div>
+    </nav>
 
-    <!-- SCRIPT DA LÓGICA UNIFICADA -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl transition-transform -translate-y-20 z-50">Notificação</div>
+
     <script>
-        // --- 1. ESTADO E DADOS ---
-        const DB_KEY_ROUTES = 'cleiton_ultimate_routes';
-        const DB_KEY_PRIVATE = 'cleiton_ultimate_private';
-        const DB_KEY_CONFIG = 'cleiton_ultimate_config';
+        const DB_KEY = 'CLEITON_V93_GEO_ARRED';
+        const INITIAL_ODOMETER = 244649;
+        
+        let db = {
+            config: { odometer: INITIAL_ODOMETER, kml: 12.0, fuelPrice: 5.79 },
+            routes: []
+        };
 
-        let routes = JSON.parse(localStorage.getItem(DB_KEY_ROUTES) || '[]');
-        let privateLog = JSON.parse(localStorage.getItem(DB_KEY_PRIVATE) || '[]');
-        let config = JSON.parse(localStorage.getItem(DB_KEY_CONFIG) || '{"kml": 10}');
+        let gpsState = {
+            active: false,
+            watchId: null,
+            totalDistance: 0,
+            lastLat: null, lastLng: null,
+            wakeLock: null,
+            originAddr: "",
+            destAddr: ""
+        };
 
-        // Variáveis GPS
-        let watchID = null;
-        let isTracking = false;
-        let tripDistance = 0;
-        let lastPosition = null;
-        let startAddressTemp = "";
-
-        // --- 2. INICIALIZAÇÃO ---
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('date').valueAsDate = new Date();
-            document.getElementById('priv-date').valueAsDate = new Date();
-            document.getElementById('cred-date').valueAsDate = new Date();
-            document.getElementById('config-kml').value = config.kml;
-            
+        window.onload = function() {
+            const saved = localStorage.getItem(DB_KEY);
+            if (saved) db = JSON.parse(saved);
             updateUI();
-        });
+        };
 
-        // --- 3. NAVEGAÇÃO ---
-        function switchTab(tabId) {
-            // Esconde todas as abas
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            // Remove active dos botões
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('active');
-                if(el.dataset.target === 'tab-private') el.classList.remove('active-private');
-            });
-
-            // Mostra a aba certa
-            document.getElementById(tabId).classList.remove('hidden');
-            
-            // Ativa o botão
-            const btn = document.querySelector(`button[data-target="${tabId}"]`);
-            btn.classList.add('active');
-            if(tabId === 'tab-private') btn.classList.add('active-private');
+        function saveData() {
+            localStorage.setItem(DB_KEY, JSON.stringify(db));
+            updateUI();
         }
 
-        // --- 4. GPS LOGIC (INTEGRADA) ---
-        function toggleGPS() {
-            if (!isTracking) {
-                startGPS();
-            } else {
-                stopGPS();
+        function applyRounding(input) {
+            if(input.value) {
+                input.value = Math.ceil(parseFloat(input.value));
             }
         }
 
-        function startGPS() {
-            if (!navigator.geolocation) return showToast("GPS não suportado", "error");
+        function toggleGPS() {
+            if (!gpsState.active) startGPS();
+            else stopGPS();
+        }
 
-            // Reset visual
-            tripDistance = 0;
-            lastPosition = null;
-            document.getElementById('live-km').innerText = "0.00";
-            document.getElementById('start-address').value = "Buscando localização...";
-            document.getElementById('end-address').value = "";
-            document.getElementById('km-total').value = "";
+        async function startGPS() {
+            if (!navigator.geolocation) return showToast("GPS Indisponível");
+            
+            showToast("Iniciando GPS...");
+            gpsState.active = true;
+            gpsState.totalDistance = 0;
+            gpsState.lastLat = null;
+            gpsState.lastLng = null;
+            
+            document.getElementById('btn-gps').classList.replace('bg-primary', 'bg-red-500');
+            document.getElementById('icon-play').classList.add('hidden');
+            document.getElementById('icon-stop').classList.remove('hidden');
+            document.getElementById('btn-pocket').disabled = false;
+            document.getElementById('recording-indicator').classList.remove('hidden');
 
-            // UI Changes
-            document.getElementById('btn-start').classList.add('hidden');
-            document.getElementById('btn-stop').classList.remove('hidden');
-            document.getElementById('gps-status').innerText = "Gravando Trajeto...";
-            document.getElementById('gps-status').className = "text-sm text-green-600 font-bold animate-pulse";
-            document.getElementById('gps-icon').classList.add('gps-pulse', 'bg-green-100', 'text-green-600');
-            document.getElementById('gps-icon').classList.remove('bg-blue-100', 'text-blue-600');
+            try { if ('wakeLock' in navigator) gpsState.wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
 
-            isTracking = true;
+            // Captura Endereço de Origem no exato momento do clique
+            navigator.geolocation.getCurrentPosition(async p => {
+                const addr = await getAddress(p.coords.latitude, p.coords.longitude);
+                gpsState.originAddr = addr;
+                document.getElementById('live-origin-addr').textContent = addr;
+                document.getElementById('form-start').value = addr;
+            });
 
-            watchID = navigator.geolocation.watchPosition(
-                async (pos) => {
-                    const { latitude, longitude, accuracy } = pos.coords;
-
-                    // Ignorar leituras com precisão ruim (> 50m)
-                    if (accuracy > 100) return;
-
-                    // Pegar endereço inicial se não tiver
-                    if (!lastPosition) {
-                        getAddress(latitude, longitude).then(addr => {
-                            startAddressTemp = addr;
-                            document.getElementById('start-address').value = addr;
-                            showToast("Início registrado!");
-                        });
+            gpsState.watchId = navigator.geolocation.watchPosition((pos) => {
+                const { latitude, longitude, accuracy } = pos.coords;
+                if (accuracy > 50) return; // Ignorar sinal ruim
+                
+                if (gpsState.lastLat !== null) {
+                    const d = calculateDistance(gpsState.lastLat, gpsState.lastLng, latitude, longitude);
+                    if (d > 0.003) { // Filtro de movimento mínimo (3 metros)
+                        gpsState.totalDistance += d;
+                        document.getElementById('live-distance').textContent = gpsState.totalDistance.toFixed(2);
+                        document.getElementById('pocket-dist').textContent = gpsState.totalDistance.toFixed(2);
                     }
-
-                    // Calcular distância
-                    if (lastPosition) {
-                        const d = calculateHaversine(lastPosition.lat, lastPosition.lon, latitude, longitude);
-                        // Filtro de ruído: só soma se moveu mais de 5 metros
-                        if (d > 0.005) {
-                            tripDistance += d;
-                            document.getElementById('live-km').innerText = tripDistance.toFixed(2);
-                        }
-                    }
-
-                    lastPosition = { lat: latitude, lon: longitude };
-                },
-                (err) => {
-                    showToast("Erro no GPS: " + err.message, "error");
-                    stopGPS();
-                },
-                { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-            );
+                }
+                gpsState.lastLat = latitude;
+                gpsState.lastLng = longitude;
+            }, null, { enableHighAccuracy: true });
         }
 
         async function stopGPS() {
-            if (watchID) navigator.geolocation.clearWatch(watchID);
-            isTracking = false;
+            gpsState.active = false;
+            if (gpsState.watchId) navigator.geolocation.clearWatch(gpsState.watchId);
+            if (gpsState.wakeLock) { gpsState.wakeLock.release(); gpsState.wakeLock = null; }
 
-            // UI Changes
-            document.getElementById('btn-start').classList.remove('hidden');
-            document.getElementById('btn-stop').classList.add('hidden');
-            document.getElementById('gps-status').innerText = "Viagem Finalizada";
-            document.getElementById('gps-status').className = "text-sm text-gray-500";
-            document.getElementById('gps-icon').classList.remove('gps-pulse', 'bg-green-100', 'text-green-600');
-            document.getElementById('gps-icon').classList.add('bg-blue-100', 'text-blue-600');
+            document.getElementById('btn-gps').classList.replace('bg-red-500', 'bg-primary');
+            document.getElementById('icon-play').classList.remove('hidden');
+            document.getElementById('icon-stop').classList.add('hidden');
+            document.getElementById('recording-indicator').classList.add('hidden');
 
-            // Preencher Formulário
-            document.getElementById('km-total').value = tripDistance.toFixed(1);
-            
-            if (lastPosition) {
-                document.getElementById('end-address').value = "Buscando destino...";
-                const destAddr = await getAddress(lastPosition.lat, lastPosition.lon);
-                document.getElementById('end-address').value = destAddr;
-            } else {
-                document.getElementById('end-address').value = "GPS não capturou movimento suficiente";
+            // Captura Endereço de Destino no momento do stop
+            if (gpsState.lastLat) {
+                const finalAddr = await getAddress(gpsState.lastLat, gpsState.lastLng);
+                gpsState.destAddr = finalAddr;
+                document.getElementById('form-end').value = finalAddr;
             }
 
-            showToast("Dados transferidos para o formulário", "success");
-            // Scroll suave até o formulário
-            document.getElementById('route-form').scrollIntoView({ behavior: 'smooth' });
+            const kmPercorrido = gpsState.totalDistance;
+            const finalKM_raw = db.config.odometer + kmPercorrido;
+
+            document.getElementById('form-km-init').value = db.config.odometer;
+            // ARREDONDAMENTO OBRIGATÓRIO PARA CIMA
+            document.getElementById('form-km-final').value = Math.ceil(finalKM_raw);
+            document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
+
+            navTo('view-register');
         }
 
-        // --- 5. LÓGICA DE NEGÓCIO E FORMULÁRIOS ---
+        async function getAddress(lat, lng) {
+            try {
+                // Usando Nominatim (OpenStreetMap) para Geocodificação Reversa
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`);
+                const data = await res.json();
+                if (data.display_name) {
+                    // Limpar endereço para ficar mais curto (Rua + Número/Bairro)
+                    const parts = data.display_name.split(',');
+                    return parts[0] + (parts[1] ? ', ' + parts[1] : '');
+                }
+                return `Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}`;
+            } catch (e) { 
+                return `Ponto ${lat.toFixed(4)}`; 
+            }
+        }
 
-        // Salvar Rota
-        document.getElementById('route-form').addEventListener('submit', (e) => {
-            e.preventDefault();
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Raio da Terra em KM
+            const dLat = (lat2-lat1)*Math.PI/180;
+            const dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
 
-            const serviceVal = document.getElementById('service-type').value;
-            const finalService = serviceVal === 'Outro' ? document.getElementById('other-service').value : serviceVal;
-
-            const newRoute = {
-                id: Date.now(),
-                date: document.getElementById('date').value,
-                service: finalService,
-                responsible: document.getElementById('responsible').value,
-                start: document.getElementById('start-address').value,
-                end: document.getElementById('end-address').value,
-                km: parseFloat(document.getElementById('km-total').value) || 0,
-                liters: parseFloat(document.getElementById('liters').value) || 0,
-                cost: parseFloat(document.getElementById('cost').value) || 0,
-                notes: document.getElementById('notes').value
-            };
-
-            routes.unshift(newRoute); // Adiciona no topo
-            saveData();
-            clearForm();
-            updateUI();
-            showToast("Rota salva com sucesso!", "success");
-        });
-
-        // Salvar Particular (Débito)
-        document.getElementById('private-debit-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const km = parseFloat(document.getElementById('priv-km').value);
-            if(!km) return;
-
-            privateLog.unshift({
-                id: Date.now(),
-                type: 'debit',
-                date: document.getElementById('priv-date').value,
-                desc: document.getElementById('priv-desc').value,
-                val: km
+        function navTo(id) {
+            document.querySelectorAll('.page-container').forEach(v => v.classList.remove('page-active'));
+            document.getElementById(id).classList.add('page-active');
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                if(b.dataset.target === id) b.classList.replace('text-slate-400', 'text-blue-600');
+                else b.classList.replace('text-blue-600', 'text-slate-400');
             });
-            saveData();
-            document.getElementById('private-debit-form').reset();
-            document.getElementById('priv-date').valueAsDate = new Date();
-            updateUI();
-            showToast("Débito particular registrado");
-        });
+        }
 
-        // Salvar Particular (Crédito)
-        document.getElementById('private-credit-form').addEventListener('submit', (e) => {
+        document.getElementById('route-form').onsubmit = (e) => {
             e.preventDefault();
-            const km = parseFloat(document.getElementById('cred-km').value);
-            if(!km) return;
-
-            privateLog.unshift({
-                id: Date.now(),
-                type: 'credit',
-                date: document.getElementById('cred-date').value,
-                desc: document.getElementById('cred-desc').value || 'Abatimento',
-                val: km
-            });
-            saveData();
-            document.getElementById('private-credit-form').reset();
-            document.getElementById('cred-date').valueAsDate = new Date();
-            updateUI();
-            showToast("Crédito/Restituição registrada", "success");
-        });
-
-        function saveConfig() {
-            const val = parseFloat(document.getElementById('config-kml').value);
-            if(val) {
-                config.kml = val;
-                localStorage.setItem(DB_KEY_CONFIG, JSON.stringify(config));
-                updateUI();
-                showToast("Configuração salva");
-            }
-        }
-
-        // --- 6. ATUALIZAÇÃO DE UI ---
-        function updateUI() {
-            saveData(); // Garante que localStorage está sync
-
-            // Totais Header
-            const totalKm = routes.reduce((sum, r) => sum + r.km, 0);
-            const totalCost = routes.reduce((sum, r) => sum + r.cost, 0);
+            const init = parseFloat(document.getElementById('form-km-init').value);
+            // Garante arredondamento final antes de salvar
+            const final = Math.ceil(parseFloat(document.getElementById('form-km-final').value));
             
-            // Particular Calc
-            const privDebit = privateLog.filter(x => x.type === 'debit').reduce((s, x) => s + x.val, 0);
-            const privCredit = privateLog.filter(x => x.type === 'credit').reduce((s, x) => s + x.val, 0);
-            const privBalance = privDebit - privCredit;
-
-            // Header DOM
-            document.getElementById('header-km').innerText = totalKm.toFixed(1);
-            document.getElementById('header-cost').innerText = "R$ " + totalCost.toFixed(2);
-            document.getElementById('header-private').innerText = privBalance.toFixed(1) + " KM";
-            document.getElementById('header-private').className = privBalance > 0 ? "font-semibold text-sm text-red-300" : "font-semibold text-sm text-green-300";
-
-            // Saldo Geral (Est) - Lógica do App 1
-            // Se o saldo particular é positivo (deve KM), convertemos para R$ aproximado ou mantemos o foco no combustível?
-            // Vamos focar no Saldo de Combustível como no App 1.
-            const totalLiters = routes.reduce((sum, r) => sum + r.liters, 0);
-            const expectedLiters = config.kml > 0 ? totalKm / config.kml : 0;
-            const balanceLiters = totalLiters - expectedLiters;
-            
-            const balEl = document.getElementById('header-balance');
-            if(balanceLiters >= 0) {
-                balEl.innerText = "+" + balanceLiters.toFixed(1) + " L";
-                balEl.className = "font-bold text-lg md:text-xl text-green-300";
-            } else {
-                balEl.innerText = balanceLiters.toFixed(1) + " L";
-                balEl.className = "font-bold text-lg md:text-xl text-red-300";
-            }
-
-            // Tabelas
-            renderHistoryTable();
-            renderPrivateTable();
-            renderStats(totalLiters, totalKm);
-
-            // Particular Display
-            const privDisp = document.getElementById('private-balance-display');
-            privDisp.innerText = privBalance.toFixed(2) + " km";
-            privDisp.className = privBalance > 0 ? "text-2xl font-black text-red-600" : "text-2xl font-black text-green-600";
-        }
-
-        function renderHistoryTable() {
-            const tbody = document.getElementById('history-list');
-            const emptyDiv = document.getElementById('empty-history');
-            
-            if(routes.length === 0) {
-                tbody.innerHTML = '';
-                emptyDiv.classList.remove('hidden');
+            if(final < init) {
+                showToast("Erro: KM final não pode ser menor!");
                 return;
             }
-            emptyDiv.classList.add('hidden');
 
-            tbody.innerHTML = routes.map(r => `
-                <tr class="hover:bg-gray-50 group">
-                    <td class="p-3 align-top">
-                        <div class="font-bold text-gray-800">${r.date.split('-').reverse().join('/')}</div>
-                        <div class="text-xs text-gray-500">${r.service}</div>
-                        <div class="text-[10px] text-gray-400 italic">${r.responsible || ''}</div>
-                    </td>
-                    <td class="p-3 align-top">
-                        <div class="text-xs">
-                            <span class="text-green-600 font-bold">DE:</span> ${r.start || '---'}<br>
-                            <span class="text-red-500 font-bold">ATÉ:</span> ${r.end || '---'}
-                        </div>
-                    </td>
-                    <td class="p-3 text-center font-bold text-blue-700">${r.km.toFixed(1)}</td>
-                    <td class="p-3 text-center text-xs">
-                        ${r.cost > 0 ? `<div class="text-green-700 font-bold">R$ ${r.cost.toFixed(2)}</div>` : ''}
-                        ${r.liters > 0 ? `<div class="text-gray-500">${r.liters} L</div>` : ''}
-                    </td>
-                    <td class="p-3 text-right">
-                        <button onclick="deleteRoute(${r.id})" class="text-gray-300 hover:text-red-500 p-1">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderPrivateTable() {
-            const tbody = document.getElementById('private-list');
-            tbody.innerHTML = privateLog.map(item => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-2 text-xs text-gray-600">${item.date.split('-').reverse().join('/')}</td>
-                    <td class="p-2 text-xs font-medium">${item.desc}</td>
-                    <td class="p-2 text-right font-bold text-xs ${item.type === 'debit' ? 'text-red-600' : 'text-green-600'}">
-                        ${item.type === 'debit' ? '-' : '+'}${item.val.toFixed(2)} Km
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderStats(totalLiters, totalKm) {
-            document.getElementById('stat-liters-used').innerText = (config.kml > 0 ? (totalKm / config.kml).toFixed(1) : '0') + " L";
-            
-            // Autonomia Real (KM total / Litros totais abastecidos)
-            const realKml = totalLiters > 0 ? (totalKm / totalLiters) : 0;
-            document.getElementById('stat-real-kml').innerText = realKml.toFixed(2) + " Km/L";
-
-            // Agrupamento por serviço
-            const grouped = {};
-            routes.forEach(r => {
-                if(!grouped[r.service]) grouped[r.service] = { count: 0, km: 0 };
-                grouped[r.service].count++;
-                grouped[r.service].km += r.km;
+            db.routes.unshift({
+                id: Date.now(),
+                date: document.getElementById('form-date').value,
+                responsible: document.getElementById('form-resp').value || "Cleiton",
+                service: document.getElementById('form-service').value,
+                start: document.getElementById('form-start').value,
+                end: document.getElementById('form-end').value,
+                kmTotal: (final - init),
+                cost: ((final - init) / db.config.kml * db.config.fuelPrice)
             });
 
-            // Sort by KM
-            const sortedServices = Object.entries(grouped).sort((a,b) => b[1].km - a[1].km);
-
-            document.getElementById('stats-service-list').innerHTML = sortedServices.map(([name, data]) => `
-                <tr>
-                    <td class="p-2 font-medium text-gray-700">${name}</td>
-                    <td class="p-2 text-center text-gray-500">${data.count}</td>
-                    <td class="p-2 text-right font-bold text-blue-600">${data.km.toFixed(1)} km</td>
-                </tr>
-            `).join('');
-        }
-
-        // --- 7. UTILS ---
-
-        function saveData() {
-            localStorage.setItem(DB_KEY_ROUTES, JSON.stringify(routes));
-            localStorage.setItem(DB_KEY_PRIVATE, JSON.stringify(privateLog));
-        }
-
-        function clearForm() {
+            db.config.odometer = final;
+            saveData();
+            
+            // Limpeza
             document.getElementById('route-form').reset();
-            document.getElementById('date').valueAsDate = new Date();
-            document.getElementById('start-address').value = "";
-            document.getElementById('end-address').value = "";
-            document.getElementById('other-service-div').classList.add('hidden');
+            document.getElementById('live-distance').textContent = "0.00";
+            document.getElementById('live-origin-addr').textContent = "Aguardando início...";
+            
+            navTo('view-history');
+            showToast("Trajeto Salvo com Sucesso!");
+        };
+
+        function updateUI() {
+            document.getElementById('header-odometer').textContent = Math.floor(db.config.odometer);
+            document.getElementById('config-odometer').value = db.config.odometer;
+            document.getElementById('config-kml').value = db.config.kml;
+            document.getElementById('config-fuel-price').value = db.config.fuelPrice;
+            
+            const list = document.getElementById('history-list');
+            list.innerHTML = db.routes.map(r => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-[9px] font-black text-blue-500 uppercase">${r.date}</span>
+                            <p class="text-xs font-black text-slate-800">${r.service}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-black text-slate-800 leading-none">${r.kmTotal} <span class="text-[10px] text-slate-400">KM</span></p>
+                            <p class="text-[10px] font-bold text-orange-600">R$ ${r.cost.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1">
+                        <div class="flex items-center gap-1 text-[9px] text-slate-400 font-bold uppercase truncate">
+                            <i class="ph ph-map-pin"></i> ${r.start || '---'}
+                        </div>
+                        <div class="flex items-center gap-1 text-[9px] text-slate-500 font-bold uppercase truncate">
+                            <i class="ph ph-flag-checkered"></i> ${r.end || '---'}
+                        </div>
+                    </div>
+                    <button onclick="deleteRoute(${r.id})" class="absolute bottom-4 right-4 text-slate-300 active:text-red-500"><i class="ph-bold ph-trash"></i></button>
+                </div>
+            `).join('');
+
+            const totalKm = db.routes.reduce((acc, r) => acc + r.kmTotal, 0);
+            const totalCost = db.routes.reduce((acc, r) => acc + r.cost, 0);
+
+            document.getElementById('dash-trips-count').textContent = db.routes.length;
+            document.getElementById('dash-total-km').textContent = totalKm.toFixed(0);
+            document.getElementById('dash-total-liters').textContent = (totalKm / db.config.kml).toFixed(1);
+            document.getElementById('dash-total-cost').textContent = `R$ ${totalCost.toFixed(2)}`;
+        }
+
+        function saveSettings() {
+            const val = document.getElementById('config-odometer').value;
+            if(val) {
+                db.config.odometer = Math.ceil(parseFloat(val));
+                saveData();
+                showToast("Odómetro Sincronizado!");
+            }
+        }
+
+        function saveAutonomy() {
+            db.config.kml = parseFloat(document.getElementById('config-kml').value) || 12.0;
+            db.config.fuelPrice = parseFloat(document.getElementById('config-fuel-price').value) || 5.79;
+            saveData();
+            showToast("Taxas Atualizadas!");
         }
 
         function deleteRoute(id) {
-            if(confirm("Apagar esta rota?")) {
-                routes = routes.filter(r => r.id !== id);
-                updateUI();
-                showToast("Rota removida");
+            if(confirm("Deseja excluir este registro do histórico?")) {
+                db.routes = db.routes.filter(r => r.id !== id);
+                saveData();
             }
         }
 
-        function confirmClear(type) {
-            if(confirm("Tem certeza? Isso apagará todos os dados desta seção permanentemente.")) {
-                if(type === 'routes') routes = [];
-                if(type === 'private') privateLog = [];
-                updateUI();
-                showToast("Dados limpos", "success");
-            }
-        }
-
-        function toggleOtherService(val) {
-            const el = document.getElementById('other-service-div');
-            if(val === 'Outro') el.classList.remove('hidden');
-            else el.classList.add('hidden');
-        }
-
-        function showToast(msg, type = 'info') {
-            const t = document.getElementById('toast');
-            const msgEl = document.getElementById('toast-msg');
-            const iconEl = document.getElementById('toast-icon');
-
-            msgEl.innerText = msg;
-            
-            if(type === 'success') {
-                t.className = "fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-green-700 text-white p-4 rounded-lg shadow-2xl flex items-center gap-3 z-50 toast show";
-                iconEl.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-            } else if (type === 'error') {
-                t.className = "fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-red-700 text-white p-4 rounded-lg shadow-2xl flex items-center gap-3 z-50 toast show";
-                iconEl.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-            } else {
-                t.className = "fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-gray-800 text-white p-4 rounded-lg shadow-2xl flex items-center gap-3 z-50 toast show";
-                iconEl.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-            }
-
-            setTimeout(() => {
-                t.classList.remove('show');
-            }, 3000);
-        }
-
-        // --- 8. HELPER MATH & API ---
-        function calculateHaversine(lat1, lon1, lat2, lon2) {
-            const R = 6371; // km
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                    Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        async function getAddress(lat, lon) {
-            try {
-                // Usando Nominatim OpenStreetMap (Gratuito, limite de uso razoável)
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
-                const data = await res.json();
-                
-                if(data.address) {
-                    const road = data.address.road || '';
-                    const suburb = data.address.suburb || data.address.neighbourhood || '';
-                    const city = data.address.city || data.address.town || '';
-                    
-                    let full = road;
-                    if(suburb) full += `, ${suburb}`;
-                    if(city) full += ` - ${city}`;
-                    return full || "Endereço desconhecido";
-                }
-                return "Coordenadas sem endereço";
-            } catch(e) {
-                console.error(e);
-                return "Erro ao buscar endereço (Sem internet?)";
-            }
-        }
-
-        function exportCSV() {
-            if(routes.length === 0) return showToast("Nada para exportar", "error");
-
-            let csv = "ID,DATA,SERVICO,RESPONSAVEL,ORIGEM,DESTINO,KM,LITROS,CUSTO\n";
-            routes.forEach(r => {
-                const line = [
-                    r.id, r.date, `"${r.service}"`, `"${r.responsible}"`, 
-                    `"${r.start}"`, `"${r.end}"`, 
-                    r.km.toString().replace('.',','),
-                    r.liters.toString().replace('.',','),
-                    r.cost.toString().replace('.',',')
-                ].join(",");
-                csv += line + "\n";
+        function exportToExcel() {
+            let csv = "Data;Responsavel;Servico;KM;Origem;Destino;Custo\n";
+            db.routes.forEach(r => {
+                csv += `${r.date};${r.responsible};${r.service};${r.kmTotal};"${r.start}";"${r.end}";${r.cost.toFixed(2)}\n`;
             });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "cleiton_backup.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showToast("CSV baixado!");
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Relatorio_CleitonPRO_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
         }
 
+        function enablePocketMode() {
+            document.getElementById('pocket-mode-overlay').style.display = 'flex';
+            let c = 0;
+            document.getElementById('pocket-mode-overlay').onclick = () => {
+                c++;
+                if(c === 2) { document.getElementById('pocket-mode-overlay').style.display = 'none'; c = 0; }
+                setTimeout(() => c = 0, 400);
+            }
+        }
+
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            t.textContent = m;
+            t.classList.remove('-translate-y-20');
+            setTimeout(() => t.classList.add('-translate-y-20'), 3000);
+        }
+
+        function hardReset() { if(confirm("CUIDADO: Isso apagará todo o histórico permanentemente! Continuar?")) { localStorage.clear(); location.reload(); } }
     </script>
 </body>
 </html>
+
