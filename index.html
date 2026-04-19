@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UltraDepósito Cloud - v4.1</title>
+    <title>UltraDepósito Cloud - v4.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -55,7 +55,7 @@
                     </div>
                     <div>
                         <h1 class="font-800 text-lg tracking-tight leading-none">UltraDepósito <span class="text-blue-600">Cloud</span></h1>
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Enterprise Edition v4.1</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Enterprise Edition v4.2</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
@@ -110,8 +110,8 @@
 
                 <!-- PDV -->
                 <div class="lg:col-span-4 space-y-6">
-                    <section class="neo-card p-8 border-t-8 border-blue-600 shadow-xl shadow-blue-50">
-                        <h2 class="text-xl font-800 mb-6 flex items-center gap-2">
+                    <section class="neo-card p-6 border-t-8 border-blue-600 shadow-xl shadow-blue-50">
+                        <h2 class="text-xl font-800 mb-5 flex items-center gap-2">
                             <i data-lucide="zap" class="text-blue-600 fill-blue-600"></i> Terminal PDV
                         </h2>
                         <div class="space-y-4">
@@ -131,58 +131,107 @@
                                     placeholder="Nome do devedor">
                             </div>
 
-                            <!-- Artigo -->
-                            <div>
-                                <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Artigo</label>
-                                <select id="pdvProduto" onchange="atualizarPrecoPdv()"
-                                    class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none cursor-pointer"></select>
+                            <!-- ── ADICIONAR AO CARRINHO (VENDA / FIADO) ── -->
+                            <div id="carrinhoInputContainer">
+                                <!-- Artigo -->
+                                <div class="mb-3">
+                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Artigo</label>
+                                    <select id="pdvProduto" onchange="atualizarPrecoPdv()"
+                                        class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none cursor-pointer"></select>
+                                </div>
+                                <!-- Qtd + Preço -->
+                                <div class="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Qtd</label>
+                                        <input type="number" id="pdvQtd" value="1" min="1"
+                                            class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black focus:ring-2 ring-blue-600 outline-none"
+                                            onkeydown="if(event.key==='Enter') adicionarAoCarrinho()">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Preço Un.</label>
+                                        <input type="number" id="pdvPreco" step="0.01"
+                                            class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black text-blue-700 outline-none">
+                                    </div>
+                                </div>
+                                <!-- Botão adicionar -->
+                                <button onclick="adicionarAoCarrinho()"
+                                    class="w-full bg-slate-800 text-white py-3.5 rounded-2xl font-800 text-sm flex items-center justify-center gap-2 hover:bg-slate-700 transition-all active:scale-95">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> ADICIONAR AO CARRINHO
+                                </button>
                             </div>
 
-                            <!-- Qtd + Preço -->
-                            <div class="grid grid-cols-2 gap-4">
+                            <!-- ── ENTRADA: artigo único (sem carrinho) ── -->
+                            <div id="entradaInputContainer" class="hidden space-y-3">
                                 <div>
-                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Qtd</label>
-                                    <input type="number" id="pdvQtd" value="1" min="1"
-                                        class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black focus:ring-2 ring-blue-600 outline-none"
-                                        oninput="atualizarTotal()"
-                                        onkeydown="if(event.key==='Enter') confirmarOperacao()">
+                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Artigo</label>
+                                    <select id="pdvProdutoEntrada" onchange="atualizarPrecoPdvEntrada()"
+                                        class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none cursor-pointer"></select>
                                 </div>
-                                <div>
-                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Preço Un.</label>
-                                    <input type="number" id="pdvPreco" step="0.01"
-                                        class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black text-blue-700 outline-none"
-                                        oninput="atualizarTotal()">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Qtd</label>
+                                        <input type="number" id="entradaQtd" value="1" min="1"
+                                            class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black focus:ring-2 ring-blue-600 outline-none"
+                                            onkeydown="if(event.key==='Enter') confirmarEntrada()">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Preço Custo</label>
+                                        <input type="number" id="entradaPreco" step="0.01"
+                                            class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black text-blue-700 outline-none">
+                                    </div>
                                 </div>
+                                <button onclick="confirmarEntrada()"
+                                    class="w-full btn-primary text-white py-4 rounded-2xl font-800 text-sm active:scale-95">
+                                    REGISTAR ENTRADA
+                                </button>
                             </div>
 
-                            <!-- Desconto % (oculto em ENTRADA) -->
-                            <div id="descontoContainer">
-                                <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Desconto (%)</label>
-                                <input type="number" id="pdvDesconto" value="0" min="0" max="100" step="0.5"
-                                    class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-amber-400 rounded-2xl font-black text-amber-600 outline-none"
-                                    oninput="atualizarTotal()">
-                            </div>
-
-                            <!-- Forma de Recebimento (só VENDA) -->
-                            <div id="formaPagContainer">
-                                <label class="text-[10px] font-800 text-slate-400 uppercase ml-2 block mb-2">Forma de Recebimento</label>
-                                <div class="flex gap-1 bg-slate-100 p-1.5 rounded-2xl">
-                                    <button onclick="setFormaPag('DINHEIRO')" id="fpDinheiro" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-emerald-700">💵 DINHEIRO</button>
-                                    <button onclick="setFormaPag('PIX')"      id="fpPix"      class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">⚡ PIX</button>
-                                    <button onclick="setFormaPag('CARTAO')"   id="fpCartao"   class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">💳 CARTÃO</button>
+                            <!-- ══ CARRINHO ══ -->
+                            <div id="carrinhoContainer" class="hidden">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-[10px] font-800 text-slate-500 uppercase tracking-wider">Carrinho</span>
+                                    <button onclick="limparCarrinho()" class="text-[9px] font-black text-rose-400 hover:text-rose-600 transition-colors">🗑 LIMPAR</button>
                                 </div>
+                                <div id="listaCarrinho" class="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scroll mb-3"></div>
+
+                                <!-- Desconto global -->
+                                <div id="descontoContainer" class="mb-3">
+                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-1">Desconto sobre total (%)</label>
+                                    <input type="number" id="pdvDesconto" value="0" min="0" max="100" step="0.5"
+                                        class="w-full mt-1 p-3 bg-slate-50 border-2 border-transparent focus:border-amber-400 rounded-2xl font-black text-amber-600 outline-none text-sm"
+                                        oninput="renderCarrinho()">
+                                </div>
+
+                                <!-- Forma de Recebimento -->
+                                <div id="formaPagContainer" class="mb-3">
+                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-1 block mb-1.5">Forma de Recebimento</label>
+                                    <div class="flex gap-1 bg-slate-100 p-1.5 rounded-2xl">
+                                        <button onclick="setFormaPag('DINHEIRO')" id="fpDinheiro" class="flex-1 py-2 text-[9px] font-800 rounded-xl transition-all bg-white shadow-sm text-emerald-700">💵 DIN.</button>
+                                        <button onclick="setFormaPag('PIX')"      id="fpPix"      class="flex-1 py-2 text-[9px] font-800 rounded-xl transition-all text-slate-400">⚡ PIX</button>
+                                        <button onclick="setFormaPag('CARTAO')"   id="fpCartao"   class="flex-1 py-2 text-[9px] font-800 rounded-xl transition-all text-slate-400">💳 CART.</button>
+                                    </div>
+                                </div>
+
+                                <!-- Total -->
+                                <div id="totalPreviewContainer" class="bg-blue-50 rounded-2xl px-4 py-3 flex justify-between items-center mb-3">
+                                    <div>
+                                        <span class="text-[10px] font-800 text-blue-400 uppercase tracking-wider block">Total a Cobrar</span>
+                                        <span id="totalSemDesconto" class="text-[9px] text-slate-400 font-bold"></span>
+                                    </div>
+                                    <span id="totalPreview" class="text-2xl font-black text-blue-700">R$ 0,00</span>
+                                </div>
+
+                                <button id="btnConfirmarPDV" onclick="confirmarOperacao()"
+                                    class="w-full btn-primary text-white py-4 rounded-[22px] font-800 flex items-center justify-center gap-2 shadow-xl shadow-blue-100 active:scale-95 text-sm">
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i> FINALIZAR VENDA
+                                </button>
                             </div>
 
-                            <!-- Total ao vivo (oculto em ENTRADA) -->
-                            <div id="totalPreviewContainer" class="bg-blue-50 rounded-2xl px-4 py-3 flex justify-between items-center">
-                                <span class="text-[10px] font-800 text-blue-400 uppercase tracking-wider">Total a Cobrar</span>
-                                <span id="totalPreview" class="text-lg font-black text-blue-700">R$ 0,00</span>
+                            <!-- Empty cart hint -->
+                            <div id="carrinhoVazioHint" class="text-center py-3 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                                Carrinho vazio
                             </div>
 
-                            <button id="btnConfirmarPDV" onclick="confirmarOperacao()"
-                                class="w-full btn-primary text-white py-5 rounded-[22px] font-800 flex items-center justify-center gap-3 shadow-xl shadow-blue-100 active:scale-95">
-                                REGISTAR TRANSAÇÃO
-                            </button>
                         </div>
                     </section>
 
@@ -216,13 +265,32 @@
 
             <!-- LEDGER -->
             <section class="neo-card p-8">
-                <div class="flex justify-between items-center mb-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <h2 class="text-lg font-800 flex items-center gap-3">
                         <i data-lucide="shield-check" class="text-blue-600"></i> Histórico de Auditoria
                     </h2>
-                    <button onclick="abrirModalConfirmacao()"
-                        class="text-[10px] font-black text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 transition-all">LIMPAR LOGS</button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Filtros de período -->
+                        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                            <button onclick="setFiltroLog('HOJE')"  id="flHoje"  class="px-3 py-1.5 text-[9px] font-800 rounded-lg transition-all bg-white shadow-sm text-blue-700">HOJE</button>
+                            <button onclick="setFiltroLog('MES')"   id="flMes"   class="px-3 py-1.5 text-[9px] font-800 rounded-lg transition-all text-slate-400">MÊS</button>
+                            <button onclick="setFiltroLog('ANO')"   id="flAno"   class="px-3 py-1.5 text-[9px] font-800 rounded-lg transition-all text-slate-400">ANO</button>
+                            <button onclick="setFiltroLog('TUDO')"  id="flTudo"  class="px-3 py-1.5 text-[9px] font-800 rounded-lg transition-all text-slate-400">TUDO</button>
+                        </div>
+                        <!-- Copiar -->
+                        <button onclick="copiarHistorico()"
+                            class="flex items-center gap-1.5 text-[9px] font-black text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-xl border border-blue-100 transition-all">
+                            <i data-lucide="copy" class="w-3 h-3"></i> COPIAR
+                        </button>
+                        <!-- Limpar -->
+                        <button onclick="abrirModalConfirmacao()"
+                            class="text-[9px] font-black text-rose-500 hover:bg-rose-50 px-3 py-2 rounded-xl border border-rose-100 transition-all">
+                            🗑 LIMPAR
+                        </button>
+                    </div>
                 </div>
+                <!-- Resumo do período -->
+                <div id="resumoPeriodo" class="hidden mb-5 grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead class="text-[10px] text-slate-400 uppercase font-800 border-b border-slate-50">
@@ -348,10 +416,12 @@
     // ============================================================
     let produtos       = [];
     let logs           = [];
-    let logsHoje       = [];      // FIX: listener dedicado → stats diárias precisas
+    let logsHoje       = [];
     let fiado          = {};
     let modoAtual      = 'VENDA';
     let formaPagamento = 'DINHEIRO';
+    let filtroLog      = 'HOJE';          // HOJE | MES | ANO | TUDO
+    let carrinho       = [];              // [{prodId, nome, qtd, preco, custo}]
     let currentFiadoUser  = null;
     let estaProcessando   = false;
     let unsubscribers     = [];
@@ -376,7 +446,6 @@
 
     auth.signInAnonymously().catch(() => setSyncStatus('offline'));
 
-    // FIX BUG 1: Timeout de segurança — app não fica presa se Firebase offline
     loadingTimeout = setTimeout(() => {
         const ls = document.getElementById('loadingScreen');
         if (ls && ls.style.display !== 'none') {
@@ -404,13 +473,12 @@
     }
 
     // ============================================================
-    // LISTENERS EM TEMPO REAL
+    // LISTENERS
     // ============================================================
     function iniciarListeners() {
         unsubscribers.forEach(fn => fn());
         unsubscribers = [];
 
-        // Produtos
         unsubscribers.push(
             fstore.collection(COL_PROD).onSnapshot(snap => {
                 produtos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -418,18 +486,15 @@
             }, () => showToast('Erro ao sincronizar produtos', 'error'))
         );
 
-        // Logs recentes (ledger + gráfico)
         unsubscribers.push(
             fstore.collection(COL_LOGS)
-                .orderBy('data', 'desc')
-                .limit(50)
+                .orderBy('data', 'desc').limit(200)
                 .onSnapshot(snap => {
                     logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     renderizar();
                 }, () => showToast('Erro ao sincronizar logs', 'error'))
         );
 
-        // FIX BUG 2: Listener dedicado para stats do dia — sem limite de 50 docs
         const inicioHoje = new Date();
         inicioHoje.setHours(0, 0, 0, 0);
         unsubscribers.push(
@@ -438,16 +503,41 @@
                 .onSnapshot(snap => {
                     logsHoje = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     renderizar();
-                }, () => { /* fallback silencioso: calcularStats usa logs gerais */ })
+                }, () => {})
         );
 
-        // Fiado
         unsubscribers.push(
             fstore.doc(DOC_FIAD).onSnapshot(snap => {
                 fiado = snap.exists ? snap.data() : {};
                 renderizar();
             }, () => showToast('Erro ao sincronizar fiados', 'error'))
         );
+    }
+
+    // ============================================================
+    // FILTRO DE LOGS por período
+    // ============================================================
+    function filtrarLogsPeriodo(lista) {
+        const agora = new Date();
+        return lista.filter(l => {
+            const d = new Date(l.data);
+            if (filtroLog === 'HOJE') return d.toDateString() === agora.toDateString();
+            if (filtroLog === 'MES')  return d.getMonth() === agora.getMonth() && d.getFullYear() === agora.getFullYear();
+            if (filtroLog === 'ANO')  return d.getFullYear() === agora.getFullYear();
+            return true; // TUDO
+        });
+    }
+
+    function setFiltroLog(f) {
+        filtroLog = f;
+        ['HOJE','MES','ANO','TUDO'].forEach(id => {
+            const btn = document.getElementById('fl'+id.charAt(0)+id.slice(1).toLowerCase());
+            if (!btn) return;
+            btn.className = id === f
+                ? 'px-3 py-1.5 text-[9px] font-800 rounded-lg transition-all bg-white shadow-sm text-blue-700'
+                : 'px-3 py-1.5 text-[9px] font-800 rounded-lg transition-all text-slate-400';
+        });
+        renderizar();
     }
 
     // ============================================================
@@ -461,19 +551,21 @@
         document.getElementById('dashFiado').innerText      = `R$ ${stats.totalFiado.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
         document.getElementById('dashPatrimonio').innerText = `R$ ${stats.patrimonio.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
 
-        // Select PDV
-        const select = document.getElementById('pdvProduto');
-        const atual  = select.value;
-        select.innerHTML = [...produtos]
-            .sort((a,b) => a.nome.localeCompare(b.nome))
-            .map(p => `<option value="${p.id}" ${p.id === atual ? 'selected' : ''}>${p.nome} (Disp: ${p.qtd})</option>`)
-            .join('');
-        if (!atual && produtos.length > 0) atualizarPrecoPdv();
+        // Preencher selects de produtos
+        const sorted = [...produtos].sort((a,b) => a.nome.localeCompare(b.nome));
+        ['pdvProduto','pdvProdutoEntrada'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            if (!sel) return;
+            const cur = sel.value;
+            sel.innerHTML = sorted.map(p =>
+                `<option value="${p.id}" ${p.id===cur?'selected':''}>${p.nome} (Disp: ${p.qtd})</option>`
+            ).join('');
+        });
+        if (!document.getElementById('pdvProduto').value && produtos.length) atualizarPrecoPdv();
+        if (!document.getElementById('pdvProdutoEntrada').value && produtos.length) atualizarPrecoPdvEntrada();
 
         // Grid Stock
-        document.getElementById('gridStock').innerHTML = [...produtos]
-            .sort((a,b) => a.nome.localeCompare(b.nome))
-            .map(p => `
+        document.getElementById('gridStock').innerHTML = sorted.map(p => `
             <div class="neo-card p-6 ${p.qtd <= p.min ? 'border-rose-200 bg-rose-50/20' : 'border-slate-100'}">
                 <div class="flex justify-between items-start mb-6">
                     <div class="flex-1 overflow-hidden">
@@ -491,11 +583,11 @@
                     </div>
                     <div class="flex flex-col items-end gap-3">
                         <div class="flex gap-1.5">
-                            <button onclick="ajusteRapido('${p.id}', -1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-rose-50 hover:text-rose-600 font-bold transition-all">−</button>
-                            <button onclick="ajusteRapido('${p.id}',  1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:text-blue-600 font-bold transition-all">+</button>
+                            <button onclick="ajusteRapido('${p.id}',-1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-rose-50 hover:text-rose-600 font-bold transition-all">−</button>
+                            <button onclick="ajusteRapido('${p.id}', 1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:text-blue-600 font-bold transition-all">+</button>
                         </div>
                         <span class="text-[8px] font-black px-2 py-0.5 bg-slate-100 rounded-lg text-slate-500 uppercase">
-                            Margem: ${p.venda > 0 ? (((p.venda - p.custo) / p.venda) * 100).toFixed(0) : 0}%
+                            Margem: ${p.venda > 0 ? (((p.venda-p.custo)/p.venda)*100).toFixed(0) : 0}%
                         </span>
                     </div>
                 </div>
@@ -511,198 +603,360 @@
                         <p class="text-xs font-black truncate pr-2">${nome}</p>
                         <p class="text-[10px] text-rose-400 font-black mt-0.5 italic">Débito: R$ ${valor.toFixed(2)}</p>
                     </div>
-                    <button onclick="abrirModalPagamento('${nome}', ${valor})"
+                    <button onclick="abrirModalPagamento('${nome}',${valor})"
                         class="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all">RECEBER</button>
                 </div>`).join('')
             : '<p class="text-[10px] text-slate-500 italic text-center py-4">Sem contas pendentes.</p>';
 
-        // Badges de forma de pagamento
-        const fpStyle = {
-            DINHEIRO: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            PIX:      'bg-violet-50 text-violet-700 border-violet-200',
-            CARTAO:   'bg-sky-50 text-sky-700 border-sky-200'
-        };
-        const fpIcon = { DINHEIRO: '💵', PIX: '⚡', CARTAO: '💳' };
-
-        // Ledger
-        document.getElementById('listaLogs').innerHTML = logs.map(l => `
-            <tr class="hover:bg-slate-50 transition-all">
-                <td class="py-4 pl-4 text-[10px] font-mono text-slate-400 whitespace-nowrap">${new Date(l.data).toLocaleString('pt-PT', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td>
-                <td class="py-4">
-                    <span class="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase border ${
-                        l.tipo === 'VENDA'    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        l.tipo === 'FIADO'    ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                        l.tipo === 'AJUSTE+'  ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        l.tipo === 'AJUSTE-'  ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                        l.tipo === 'AJUSTE'   ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                        l.tipo === 'PAGAMENTO'? 'bg-emerald-500 text-white border-transparent' :
-                                               'bg-blue-50 text-blue-700 border-blue-200'
-                    }">${l.tipo}</span>
-                </td>
-                <td class="py-4 font-800 text-slate-700">
-                    <span class="text-sm">${l.nome}</span>
-                    ${l.cliente        ? `<span class="ml-1 text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">👤 ${l.cliente}</span>` : ''}
-                    ${l.formaPagamento ? `<span class="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded border ${fpStyle[l.formaPagamento] || 'bg-slate-50 text-slate-500 border-slate-200'}">${fpIcon[l.formaPagamento] || ''} ${l.formaPagamento}</span>` : ''}
-                    ${l.descontoPorc > 0 ? `<span class="ml-1 text-[9px] font-black bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">−${l.descontoPorc}%</span>` : ''}
-                </td>
-                <td class="py-4 text-center font-black text-xs">${Math.abs(l.qtd ?? 0)}</td>
-                <td class="py-4 text-right pr-4 font-black ${l.tipo === 'ENTRADA' ? 'text-blue-600' : 'text-slate-900'}">
-                    R$ ${(Math.abs(l.qtd ?? 0) * (l.preco || 0)).toFixed(2)}
-                    ${l.descontoPorc > 0 && l.precoBase ? `<div class="text-[9px] font-bold text-slate-400 line-through">R$ ${(Math.abs(l.qtd)*l.precoBase).toFixed(2)}</div>` : ''}
-                </td>
-            </tr>`).join('');
+        // Ledger filtrado
+        renderLedger();
 
         atualizarGrafico();
         lucide.createIcons();
     }
 
     // ============================================================
-    // STATS — FIX BUG 2: usa logsHoje com fallback
+    // RENDER LEDGER (separado para re-renderizar sem rebuild total)
+    // ============================================================
+    const fpStyle = { DINHEIRO:'bg-emerald-50 text-emerald-700 border-emerald-200', PIX:'bg-violet-50 text-violet-700 border-violet-200', CARTAO:'bg-sky-50 text-sky-700 border-sky-200' };
+    const fpIcon  = { DINHEIRO:'💵', PIX:'⚡', CARTAO:'💳' };
+
+    function renderLedger() {
+        const logsFiltrados = filtrarLogsPeriodo(logs);
+
+        // Resumo do período
+        const vendasPeriodo  = logsFiltrados.filter(l => l.tipo==='VENDA'||l.tipo==='FIADO');
+        const totalVendas    = vendasPeriodo.reduce((a,b) => a+(b.qtd*b.preco),0);
+        const totalLucro     = vendasPeriodo.reduce((a,b) => a+(b.qtd*(b.preco-(b.custoNoMomento||0))),0);
+        const totalRecebido  = logsFiltrados.filter(l=>l.tipo==='PAGAMENTO').reduce((a,b)=>a+(b.preco||0),0);
+        const totalEntradas  = logsFiltrados.filter(l=>l.tipo==='ENTRADA').reduce((a,b)=>a+(b.qtd*(b.preco||0)),0);
+
+        const resumo = document.getElementById('resumoPeriodo');
+        resumo.className = 'mb-5 grid grid-cols-2 sm:grid-cols-4 gap-3';
+        resumo.innerHTML = [
+            {label:'Faturado', val:`R$ ${totalVendas.toFixed(2)}`,  cor:'text-blue-700',    bg:'bg-blue-50'},
+            {label:'Lucro',    val:`R$ ${totalLucro.toFixed(2)}`,   cor:'text-emerald-700', bg:'bg-emerald-50'},
+            {label:'Recebido', val:`R$ ${totalRecebido.toFixed(2)}`,cor:'text-violet-700',  bg:'bg-violet-50'},
+            {label:'Compras',  val:`R$ ${totalEntradas.toFixed(2)}`,cor:'text-slate-700',   bg:'bg-slate-100'},
+        ].map(r => `
+            <div class="${r.bg} rounded-2xl p-3">
+                <p class="text-[8px] font-800 text-slate-400 uppercase tracking-wider">${r.label}</p>
+                <p class="text-sm font-black ${r.cor} mt-0.5">${r.val}</p>
+            </div>`).join('');
+
+        document.getElementById('listaLogs').innerHTML = logsFiltrados.length
+            ? logsFiltrados.map(l => `
+            <tr class="hover:bg-slate-50 transition-all">
+                <td class="py-3 pl-4 text-[10px] font-mono text-slate-400 whitespace-nowrap">${new Date(l.data).toLocaleString('pt-PT',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td>
+                <td class="py-3">
+                    <span class="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase border ${
+                        l.tipo==='VENDA'     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        l.tipo==='FIADO'     ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                        l.tipo==='AJUSTE+'   ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        l.tipo==='AJUSTE-'   ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        l.tipo==='PAGAMENTO' ? 'bg-emerald-500 text-white border-transparent' :
+                                               'bg-blue-50 text-blue-700 border-blue-200'
+                    }">${l.tipo}</span>
+                </td>
+                <td class="py-3 font-800 text-slate-700">
+                    <span class="text-sm">${l.nome}</span>
+                    ${l.cliente        ? `<span class="ml-1 text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">👤 ${l.cliente}</span>` : ''}
+                    ${l.formaPagamento ? `<span class="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded border ${fpStyle[l.formaPagamento]||'bg-slate-50 text-slate-500 border-slate-200'}">${fpIcon[l.formaPagamento]||''} ${l.formaPagamento}</span>` : ''}
+                    ${l.descontoPorc>0 ? `<span class="ml-1 text-[9px] font-black bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">−${l.descontoPorc}%</span>` : ''}
+                </td>
+                <td class="py-3 text-center font-black text-xs">${Math.abs(l.qtd??0)}</td>
+                <td class="py-3 text-right pr-4 font-black ${l.tipo==='ENTRADA'?'text-blue-600':'text-slate-900'}">
+                    R$ ${(Math.abs(l.qtd??0)*(l.preco||0)).toFixed(2)}
+                    ${l.descontoPorc>0&&l.precoBase?`<div class="text-[9px] font-bold text-slate-400 line-through">R$ ${(Math.abs(l.qtd)*l.precoBase).toFixed(2)}</div>`:''}
+                </td>
+            </tr>`).join('')
+            : `<tr><td colspan="5" class="py-8 text-center text-[11px] font-bold text-slate-300 uppercase tracking-widest">Sem registos no período</td></tr>`;
+    }
+
+    // ============================================================
+    // COPIAR HISTÓRICO
+    // ============================================================
+    function copiarHistorico() {
+        const logsFiltrados = filtrarLogsPeriodo(logs);
+        if (!logsFiltrados.length) return showToast('Sem dados no período', 'error');
+
+        const labels = { HOJE:'Hoje', MES:'Este Mês', ANO:'Este Ano', TUDO:'Completo' };
+        const agora  = new Date().toLocaleString('pt-PT');
+        const vendasP = logsFiltrados.filter(l=>l.tipo==='VENDA'||l.tipo==='FIADO');
+        const totalV  = vendasP.reduce((a,b)=>a+(b.qtd*b.preco),0);
+        const totalL  = vendasP.reduce((a,b)=>a+(b.qtd*(b.preco-(b.custoNoMomento||0))),0);
+        const totalR  = logsFiltrados.filter(l=>l.tipo==='PAGAMENTO').reduce((a,b)=>a+(b.preco||0),0);
+
+        const linhas = logsFiltrados.map(l => {
+            const ts  = new Date(l.data).toLocaleString('pt-PT');
+            const val = (Math.abs(l.qtd??0)*(l.preco||0)).toFixed(2);
+            const desc= l.descontoPorc>0 ? ` (-${l.descontoPorc}%)` : '';
+            const fp  = l.formaPagamento ? ` [${l.formaPagamento}]` : '';
+            const cli = l.cliente ? ` | 👤 ${l.cliente}` : '';
+            return `${ts}  |  ${l.tipo.padEnd(9)}  |  ${l.nome}${desc}${fp}${cli}  |  Qtd: ${Math.abs(l.qtd??0)}  |  R$ ${val}`;
+        });
+
+        const separador = '─'.repeat(80);
+        const texto = [
+            `📋 RELATÓRIO ULTRADEPOSITO — ${labels[filtroLog].toUpperCase()}`,
+            `Gerado em: ${agora}`,
+            separador,
+            ...linhas,
+            separador,
+            `💰 Faturado: R$ ${totalV.toFixed(2)}   |   Lucro: R$ ${totalL.toFixed(2)}   |   Recebido de fiados: R$ ${totalR.toFixed(2)}`,
+        ].join('\n');
+
+        navigator.clipboard.writeText(texto)
+            .then(() => showToast(`✓ ${logsFiltrados.length} registos copiados!`))
+            .catch(() => {
+                // fallback para ambientes sem clipboard API
+                const ta = document.createElement('textarea');
+                ta.value = texto;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                showToast(`✓ ${logsFiltrados.length} registos copiados!`);
+            });
+    }
+
+    // ============================================================
+    // STATS
     // ============================================================
     function calcularStats() {
         const fonte = logsHoje.length > 0
             ? logsHoje
             : logs.filter(l => new Date(l.data).toDateString() === new Date().toDateString());
-        const logsVenda  = fonte.filter(l => l.tipo === 'VENDA' || l.tipo === 'FIADO');
-        const vendasHoje = logsVenda.reduce((a,b) => a + (b.qtd * b.preco), 0);
-        const lucroHoje  = logsVenda.reduce((a,b) => a + (b.qtd * (b.preco - (b.custoNoMomento || 0))), 0);
-        const totalFiado = Object.values(fiado).reduce((a,b) => a + b, 0);
-        const patrimonio = produtos.reduce((a,b) => a + (b.qtd * b.custo), 0);
+        const logsV  = fonte.filter(l => l.tipo==='VENDA'||l.tipo==='FIADO');
+        const vendasHoje = logsV.reduce((a,b)=>a+(b.qtd*b.preco),0);
+        const lucroHoje  = logsV.reduce((a,b)=>a+(b.qtd*(b.preco-(b.custoNoMomento||0))),0);
+        const totalFiado = Object.values(fiado).reduce((a,b)=>a+b,0);
+        const patrimonio = produtos.reduce((a,b)=>a+(b.qtd*b.custo),0);
         return { vendasHoje, lucroHoje, totalFiado, patrimonio };
     }
 
     // ============================================================
-    // OPERAÇÕES FIRESTORE
+    // ── CARRINHO ──
+    // ============================================================
+    function adicionarAoCarrinho() {
+        const prodId = document.getElementById('pdvProduto').value;
+        const qtd    = parseInt(document.getElementById('pdvQtd').value);
+        const preco  = parseFloat(document.getElementById('pdvPreco').value);
+        const p      = produtos.find(x => x.id === prodId);
+        if (!p || isNaN(qtd) || qtd <= 0 || isNaN(preco)) return showToast('Valores inválidos!','error');
+
+        // Verificar stock total reservado no carrinho
+        const jaNoCarrinho = carrinho.filter(c=>c.prodId===prodId).reduce((a,c)=>a+c.qtd,0);
+        if (jaNoCarrinho + qtd > p.qtd) return showToast(`Stock insuficiente! Disponível: ${p.qtd - jaNoCarrinho}`,'error');
+
+        // Agrupa se mesmo produto e mesmo preço
+        const existe = carrinho.find(c => c.prodId===prodId && c.preco===preco);
+        if (existe) existe.qtd += qtd;
+        else carrinho.push({ prodId, nome: p.nome, qtd, preco, custo: p.custo });
+
+        // Reset campos
+        document.getElementById('pdvQtd').value = 1;
+        renderCarrinho();
+        showToast(`✓ ${p.nome} adicionado`);
+    }
+
+    function removerDoCarrinho(idx) {
+        carrinho.splice(idx, 1);
+        renderCarrinho();
+    }
+
+    function limparCarrinho() {
+        carrinho = [];
+        renderCarrinho();
+    }
+
+    function renderCarrinho() {
+        const temItens = carrinho.length > 0;
+
+        document.getElementById('carrinhoContainer').className   = temItens ? 'block' : 'hidden';
+        document.getElementById('carrinhoVazioHint').className   = temItens ? 'hidden' : 'text-center py-3 text-[10px] font-bold text-slate-300 uppercase tracking-widest';
+
+        if (!temItens) return;
+
+        const desconto    = parseFloat(document.getElementById('pdvDesconto').value) || 0;
+        const subtotal    = carrinho.reduce((a,c) => a + (c.qtd * c.preco), 0);
+        const totalFinal  = subtotal * (1 - desconto/100);
+
+        document.getElementById('listaCarrinho').innerHTML = carrinho.map((c,i) => `
+            <div class="flex items-center justify-between bg-slate-50 rounded-2xl px-3 py-2.5 gap-2">
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-[11px] font-800 text-slate-700 truncate">${c.nome}</p>
+                    <p class="text-[9px] font-bold text-slate-400">${c.qtd}× R$ ${c.preco.toFixed(2)}</p>
+                </div>
+                <span class="text-[11px] font-black text-slate-800 whitespace-nowrap">R$ ${(c.qtd*c.preco).toFixed(2)}</span>
+                <button onclick="removerDoCarrinho(${i})" class="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors flex-shrink-0">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>`).join('');
+
+        const totalEl = document.getElementById('totalPreview');
+        if (totalEl) totalEl.innerText = `R$ ${totalFinal.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
+        const semDescEl = document.getElementById('totalSemDesconto');
+        if (semDescEl) semDescEl.innerText = desconto > 0 ? `Subtotal: R$ ${subtotal.toFixed(2)} (−${desconto}%)` : '';
+
+        lucide.createIcons();
+    }
+
+    // ============================================================
+    // CONFIRMAR VENDA (multi-item) / FIADO
     // ============================================================
     async function confirmarOperacao() {
-        if (estaProcessando) return;
+        if (estaProcessando || !carrinho.length) return;
+        const cliente = (document.getElementById('pdvCliente').value||'').trim();
+        if (modoAtual === 'FIADO' && !cliente) return showToast('Indique o cliente!','error');
 
-        const prodId       = document.getElementById('pdvProduto').value;
-        const qtd          = parseInt(document.getElementById('pdvQtd').value);
-        const precoManual  = parseFloat(document.getElementById('pdvPreco').value);
-        const descontoPorc = parseFloat(document.getElementById('pdvDesconto').value) || 0;
-        const cliente      = document.getElementById('pdvCliente').value.trim();
-        const p            = produtos.find(x => x.id === prodId);
-
-        if (!p || isNaN(qtd) || qtd <= 0) return showToast('Valores inválidos!', 'error');
-        if (modoAtual === 'FIADO' && !cliente) return showToast('Indique o cliente!', 'error');
+        // Verificação de stock
+        for (const item of carrinho) {
+            const p = produtos.find(x=>x.id===item.prodId);
+            if (!p || p.qtd < item.qtd) return showToast(`Stock insuficiente: ${item.nome}`,'error');
+        }
 
         estaProcessando = true;
         document.getElementById('btnConfirmarPDV').disabled = true;
 
+        const desconto = parseFloat(document.getElementById('pdvDesconto').value) || 0;
+
         try {
-            const custoNoMomento = p.custo;
-            const precoBase = isNaN(precoManual)
-                ? (modoAtual === 'ENTRADA' ? p.custo : p.venda)
-                : precoManual;
-            // NOVO: aplica desconto (só VENDA/FIADO)
-            const preco = modoAtual === 'ENTRADA'
-                ? precoBase
-                : precoBase * (1 - descontoPorc / 100);
+            const batch = fstore.batch();
 
-            const prodRef = fstore.collection(COL_PROD).doc(p.id);
+            for (const item of carrinho) {
+                const p         = produtos.find(x=>x.id===item.prodId);
+                const precoFinal= item.preco * (1 - desconto/100);
 
-            if (modoAtual === 'VENDA' || modoAtual === 'FIADO') {
-                if (p.qtd < qtd) return showToast('Stock insuficiente!', 'error');
-                await prodRef.update({ qtd: firebase.firestore.FieldValue.increment(-qtd) });
-                if (modoAtual === 'FIADO') {
-                    const novoValor = (fiado[cliente] || 0) + (qtd * preco);
-                    await fstore.doc(DOC_FIAD).set({ ...fiado, [cliente]: novoValor });
+                // Decrementa stock
+                batch.update(fstore.collection(COL_PROD).doc(item.prodId), {
+                    qtd: firebase.firestore.FieldValue.increment(-item.qtd)
+                });
+
+                // Log por item
+                const logRef = fstore.collection(COL_LOGS).doc();
+                batch.set(logRef, {
+                    tipo:           modoAtual,
+                    nome:           item.nome,
+                    cliente:        modoAtual==='FIADO' ? cliente : null,
+                    qtd:            item.qtd,
+                    preco:          precoFinal,
+                    precoBase:      item.preco,
+                    descontoPorc:   desconto,
+                    formaPagamento: modoAtual==='VENDA' ? formaPagamento : null,
+                    custoNoMomento: item.custo,
+                    data:           new Date().toISOString(),
+                    userId:         auth.currentUser?.uid || 'anon'
+                });
+
+                // Fiado: acumular por item
+                if (modoAtual==='FIADO') {
+                    const novoValor = (fiado[cliente]||0) + (item.qtd * precoFinal);
+                    // Nota: batch.set no DOC_FIAD será feito fora do loop (valor final)
                 }
-            } else {
-                // ENTRADA: custo médio ponderado
-                const novaQtd   = p.qtd + qtd;
-                const novoCusto = ((p.qtd * p.custo) + (qtd * precoBase)) / novaQtd;
-                await prodRef.update({ qtd: novaQtd, custo: parseFloat(novoCusto.toFixed(4)) });
             }
 
-            await fstore.collection(COL_LOGS).add({
-                tipo:           modoAtual,
-                nome:           p.nome,
-                cliente:        modoAtual === 'FIADO' ? cliente : null,
-                qtd,
-                preco,                                                  // preço final (após desconto)
-                precoBase,                                              // preço original
-                descontoPorc:   modoAtual !== 'ENTRADA' ? descontoPorc : 0,
-                formaPagamento: modoAtual === 'VENDA' ? formaPagamento : null,
-                custoNoMomento,
-                data:           new Date().toISOString(),
-                userId:         auth.currentUser?.uid || 'anon'
-            });
+            // Fiado: calcular total da sessão e salvar
+            if (modoAtual==='FIADO') {
+                const totalSessao = carrinho.reduce((a,c)=>a+(c.qtd*c.preco*(1-desconto/100)),0);
+                const novoFiado = { ...fiado, [cliente]: (fiado[cliente]||0) + totalSessao };
+                batch.set(fstore.doc(DOC_FIAD), novoFiado);
+            }
 
-            // Reset campos
-            document.getElementById('pdvQtd').value      = 1;
+            await batch.commit();
+
+            // Reset
+            carrinho = [];
             document.getElementById('pdvCliente').value  = '';
             document.getElementById('pdvDesconto').value = 0;
             setFormaPag('DINHEIRO');
-            atualizarTotal();
-            showToast('✓ Operação registada!');
-        } catch (err) {
-            showToast('Erro na Cloud: ' + err.message, 'error');
+            renderCarrinho();
+            showToast(`✓ Venda registada — ${carrinho.length||'OK'}`);
+        } catch(err) {
+            showToast('Erro na Cloud: '+err.message,'error');
         } finally {
             estaProcessando = false;
             document.getElementById('btnConfirmarPDV').disabled = false;
         }
     }
 
-    // FIX BUG 3: tipo correto + qtd absoluta
-    async function ajusteRapido(id, delta) {
-        const p = produtos.find(x => x.id === id);
-        if (!p || (delta < 0 && p.qtd <= 0)) return;
+    // ============================================================
+    // CONFIRMAR ENTRADA (modo STOCK — sem carrinho)
+    // ============================================================
+    async function confirmarEntrada() {
+        const prodId = document.getElementById('pdvProdutoEntrada').value;
+        const qtd    = parseInt(document.getElementById('entradaQtd').value);
+        const preco  = parseFloat(document.getElementById('entradaPreco').value);
+        const p      = produtos.find(x=>x.id===prodId);
+        if (!p || isNaN(qtd)||qtd<=0||isNaN(preco)) return showToast('Valores inválidos!','error');
         try {
-            await fstore.collection(COL_PROD).doc(id).update({
-                qtd: firebase.firestore.FieldValue.increment(delta)
-            });
+            const novaQtd   = p.qtd + qtd;
+            const novoCusto = ((p.qtd * p.custo)+(qtd*preco)) / novaQtd;
+            await fstore.collection(COL_PROD).doc(prodId).update({ qtd: novaQtd, custo: parseFloat(novoCusto.toFixed(4)) });
             await fstore.collection(COL_LOGS).add({
-                tipo:           delta > 0 ? 'AJUSTE+' : 'AJUSTE-',
-                nome:           p.nome,
-                qtd:            Math.abs(delta),        // sempre positivo
-                preco:          0,
-                descontoPorc:   0,
-                custoNoMomento: p.custo,
-                data:           new Date().toISOString(),
-                userId:         auth.currentUser?.uid || 'anon'
+                tipo:'ENTRADA', nome:p.nome, qtd, preco, precoBase:preco,
+                descontoPorc:0, custoNoMomento:p.custo,
+                data: new Date().toISOString(), userId: auth.currentUser?.uid||'anon'
             });
-            showToast(delta > 0 ? '+1 unidade adicionada' : '−1 unidade removida');
-        } catch(err) { showToast('Erro ao ajustar', 'error'); }
+            document.getElementById('entradaQtd').value = 1;
+            showToast('✓ Entrada registada!');
+        } catch(err) { showToast('Erro: '+err.message,'error'); }
     }
 
+    // ============================================================
+    // AJUSTE RÁPIDO
+    // ============================================================
+    async function ajusteRapido(id, delta) {
+        const p = produtos.find(x=>x.id===id);
+        if (!p || (delta<0 && p.qtd<=0)) return;
+        try {
+            await fstore.collection(COL_PROD).doc(id).update({ qtd: firebase.firestore.FieldValue.increment(delta) });
+            await fstore.collection(COL_LOGS).add({
+                tipo: delta>0?'AJUSTE+':'AJUSTE-', nome:p.nome,
+                qtd: Math.abs(delta), preco:0, descontoPorc:0, custoNoMomento:p.custo,
+                data: new Date().toISOString(), userId: auth.currentUser?.uid||'anon'
+            });
+            showToast(delta>0?'+1 unidade adicionada':'−1 unidade removida');
+        } catch(err) { showToast('Erro ao ajustar','error'); }
+    }
+
+    // ============================================================
+    // PRODUTO CRUD
+    // ============================================================
     async function salvarProduto() {
         const id    = document.getElementById('mId').value;
         const dados = {
             nome:  document.getElementById('mNome').value.trim(),
-            custo: parseFloat(document.getElementById('mCusto').value) || 0,
-            venda: parseFloat(document.getElementById('mVenda').value) || 0,
-            qtd:   parseInt(document.getElementById('mQtd').value)     || 0,
-            min:   parseInt(document.getElementById('mMin').value)     || 5
+            custo: parseFloat(document.getElementById('mCusto').value)||0,
+            venda: parseFloat(document.getElementById('mVenda').value)||0,
+            qtd:   parseInt(document.getElementById('mQtd').value)||0,
+            min:   parseInt(document.getElementById('mMin').value)||5
         };
-        if (!dados.nome) return showToast('Preencha o nome!', 'error');
+        if (!dados.nome) return showToast('Preencha o nome!','error');
         try {
             if (id) await fstore.collection(COL_PROD).doc(id).update(dados);
             else    await fstore.collection(COL_PROD).add(dados);
             fecharModalProduto();
             showToast('Inventário atualizado!');
-        } catch(err) { showToast('Erro ao guardar: ' + err.message, 'error'); }
+        } catch(err) { showToast('Erro: '+err.message,'error'); }
     }
 
-    // NOVO: apagar produto com confirmação de dois cliques
     async function apagarProduto() {
         const btn = document.getElementById('btnApagarProduto');
         if (btn.dataset.confirmar !== 'sim') {
             btn.dataset.confirmar = 'sim';
             btn.innerText = '⚠️ CONFIRMAR EXCLUSÃO?';
-            btn.classList.replace('bg-rose-50',    'bg-rose-600');
-            btn.classList.replace('text-rose-600', 'text-white');
-            btn.classList.replace('border-rose-200','border-rose-700');
-            setTimeout(() => {
-                if (btn.dataset.confirmar === 'sim') {
-                    btn.dataset.confirmar = '';
-                    btn.innerText = '🗑 APAGAR ARTIGO';
-                    btn.classList.replace('bg-rose-600',   'bg-rose-50');
-                    btn.classList.replace('text-white',    'text-rose-600');
-                    btn.classList.replace('border-rose-700','border-rose-200');
+            btn.className = 'w-full py-4 bg-rose-600 text-white rounded-[20px] font-800 transition-all text-sm';
+            setTimeout(()=>{
+                if(btn.dataset.confirmar==='sim'){
+                    btn.dataset.confirmar='';
+                    btn.innerText='🗑 APAGAR ARTIGO';
+                    btn.className='w-full py-4 bg-rose-50 text-rose-600 border border-rose-200 rounded-[20px] font-800 hover:bg-rose-600 hover:text-white transition-all text-sm';
                 }
-            }, 3500);
+            },3500);
             return;
         }
         const id = document.getElementById('mId').value;
@@ -710,49 +964,50 @@
         try {
             await fstore.collection(COL_PROD).doc(id).delete();
             fecharModalProduto();
-            showToast('Artigo eliminado do inventário.');
-        } catch(err) { showToast('Erro ao apagar: ' + err.message, 'error'); }
+            showToast('Artigo eliminado.');
+        } catch(err) { showToast('Erro: '+err.message,'error'); }
     }
 
+    // ============================================================
+    // FIADO — PAGAMENTO
+    // ============================================================
     async function processarPagamento() {
         const valorPago = parseFloat(document.getElementById('pagamentoValor').value);
-        if (isNaN(valorPago) || valorPago <= 0) return showToast('Valor inválido', 'error');
-        const divida = fiado[currentFiadoUser] || 0;
-        if (valorPago > divida + 0.01) return showToast('Pagamento excede a dívida!', 'error');
+        if (isNaN(valorPago)||valorPago<=0) return showToast('Valor inválido','error');
+        const divida = fiado[currentFiadoUser]||0;
+        if (valorPago > divida+0.01) return showToast('Pagamento excede a dívida!','error');
         try {
             const novoSaldo = divida - valorPago;
-            const novoFiado = { ...fiado };
-            if (novoSaldo <= 0.01) delete novoFiado[currentFiadoUser];
+            const novoFiado = {...fiado};
+            if (novoSaldo<=0.01) delete novoFiado[currentFiadoUser];
             else novoFiado[currentFiadoUser] = novoSaldo;
             await fstore.doc(DOC_FIAD).set(novoFiado);
             await fstore.collection(COL_LOGS).add({
-                tipo: 'PAGAMENTO', nome: `Recebimento: ${currentFiadoUser}`,
-                qtd: 1, preco: valorPago, custoNoMomento: 0,
-                data: new Date().toISOString(),
-                userId: auth.currentUser?.uid || 'anon'
+                tipo:'PAGAMENTO', nome:`Recebimento: ${currentFiadoUser}`,
+                qtd:1, preco:valorPago, custoNoMomento:0,
+                data: new Date().toISOString(), userId: auth.currentUser?.uid||'anon'
             });
             fecharModalPagamento();
             showToast('✓ Recebido com sucesso!');
-        } catch(err) { showToast('Erro no pagamento', 'error'); }
+        } catch(err) { showToast('Erro no pagamento','error'); }
     }
 
-    // FIX BUG 4: loop para apagar >500 logs (batch limit = 500)
+    // FIX: loop batch para >500 logs
     async function confirmarLimparHistorico() {
         fecharModalConfirmacao();
         showToast('A limpar logs...');
         try {
-            let safetyCounter = 0;
-            let snap;
+            let safetyCounter=0, snap;
             do {
                 const batch = fstore.batch();
                 snap = await fstore.collection(COL_LOGS).limit(450).get();
                 if (snap.empty) break;
-                snap.docs.forEach(d => batch.delete(d.ref));
+                snap.docs.forEach(d=>batch.delete(d.ref));
                 await batch.commit();
                 safetyCounter++;
-            } while (!snap.empty && safetyCounter < 20); // máx ~9000 logs
+            } while (!snap.empty && safetyCounter<20);
             showToast('Logs eliminados. ✓');
-        } catch(err) { showToast('Erro ao limpar: ' + err.message, 'error'); }
+        } catch(err) { showToast('Erro: '+err.message,'error'); }
     }
 
     // ============================================================
@@ -760,54 +1015,55 @@
     // ============================================================
     function setModo(m) {
         modoAtual = m;
-        const btnMap = { VENDA: 'btnVenda', ENTRADA: 'btnEntrada', FIADO: 'btnFiado' };
+        const btnMap = { VENDA:'btnVenda', ENTRADA:'btnEntrada', FIADO:'btnFiado' };
         Object.entries(btnMap).forEach(([modo, id]) => {
-            document.getElementById(id).className = modo === m
+            document.getElementById(id).className = modo===m
                 ? 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-blue-700'
                 : 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400';
         });
-        const show = cls => cls;
-        const hide = 'hidden';
-        document.getElementById('clienteContainer').className      = m === 'FIADO'   ? show('block') : hide;
-        document.getElementById('descontoContainer').className     = m !== 'ENTRADA' ? show('block') : hide;
-        document.getElementById('formaPagContainer').className     = m === 'VENDA'   ? show('block') : hide;
-        document.getElementById('totalPreviewContainer').className = m !== 'ENTRADA'
-            ? 'bg-blue-50 rounded-2xl px-4 py-3 flex justify-between items-center'
-            : 'hidden';
+
+        const isEntrada = m==='ENTRADA';
+        const isFiado   = m==='FIADO';
+
+        // Painel de adicionar ao carrinho (VENDA/FIADO) vs entrada (STOCK)
+        document.getElementById('carrinhoInputContainer').className = !isEntrada ? 'block' : 'hidden';
+        document.getElementById('entradaInputContainer').className  = isEntrada  ? 'block space-y-3' : 'hidden';
+        document.getElementById('clienteContainer').className       = isFiado    ? 'block' : 'hidden';
+
+        // Esconde o carrinho se mudar para ENTRADA
+        if (isEntrada) { limparCarrinho(); }
+
+        // formaPag só em VENDA (dentro do carrinho)
+        const fp = document.getElementById('formaPagContainer');
+        if (fp) fp.className = m==='VENDA' ? 'mb-3' : 'hidden';
+
         atualizarPrecoPdv();
     }
 
     function setFormaPag(f) {
         formaPagamento = f;
-        const cores = { DINHEIRO: 'text-emerald-700', PIX: 'text-violet-700', CARTAO: 'text-sky-700' };
-        [['DINHEIRO','fpDinheiro'],['PIX','fpPix'],['CARTAO','fpCartao']].forEach(([fp, id]) => {
-            document.getElementById(id).className = fp === f
-                ? `flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm ${cores[fp]}`
-                : 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400';
+        const cores = { DINHEIRO:'text-emerald-700', PIX:'text-violet-700', CARTAO:'text-sky-700' };
+        [['DINHEIRO','fpDinheiro'],['PIX','fpPix'],['CARTAO','fpCartao']].forEach(([fp,id])=>{
+            document.getElementById(id).className = fp===f
+                ? `flex-1 py-2 text-[9px] font-800 rounded-xl transition-all bg-white shadow-sm ${cores[fp]}`
+                : 'flex-1 py-2 text-[9px] font-800 rounded-xl transition-all text-slate-400';
         });
     }
 
     function atualizarPrecoPdv() {
-        const p = produtos.find(x => x.id === document.getElementById('pdvProduto').value);
-        if (p) document.getElementById('pdvPreco').value = modoAtual === 'ENTRADA' ? p.custo : p.venda;
-        atualizarTotal();
+        const p = produtos.find(x=>x.id===document.getElementById('pdvProduto').value);
+        if (p) document.getElementById('pdvPreco').value = p.venda;
     }
 
-    // NOVO: total ao vivo com desconto aplicado
-    function atualizarTotal() {
-        if (modoAtual === 'ENTRADA') return;
-        const qtd   = parseFloat(document.getElementById('pdvQtd').value)      || 0;
-        const preco = parseFloat(document.getElementById('pdvPreco').value)    || 0;
-        const desc  = parseFloat(document.getElementById('pdvDesconto').value) || 0;
-        const total = qtd * preco * (1 - desc / 100);
-        const el = document.getElementById('totalPreview');
-        if (el) el.innerText = `R$ ${total.toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+    function atualizarPrecoPdvEntrada() {
+        const p = produtos.find(x=>x.id===document.getElementById('pdvProdutoEntrada').value);
+        if (p) document.getElementById('entradaPreco').value = p.custo;
     }
 
     function abrirModalProduto() {
         document.getElementById('modalTitle').innerText = 'Novo Artigo';
         document.getElementById('mId').value = '';
-        document.querySelectorAll('#modalProduto input:not([type=hidden])').forEach(i => i.value = '');
+        document.querySelectorAll('#modalProduto input:not([type=hidden])').forEach(i=>i.value='');
         document.getElementById('apagarContainer').className = 'hidden';
         document.getElementById('modalProduto').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6';
     }
@@ -817,7 +1073,7 @@
     }
 
     function editarProduto(id) {
-        const p = produtos.find(x => x.id === id);
+        const p = produtos.find(x=>x.id===id);
         if (!p) return;
         document.getElementById('modalTitle').innerText = 'Editar Artigo';
         document.getElementById('mId').value    = p.id;
@@ -825,8 +1081,7 @@
         document.getElementById('mCusto').value = p.custo;
         document.getElementById('mVenda').value = p.venda;
         document.getElementById('mQtd').value   = p.qtd;
-        document.getElementById('mMin').value   = p.min ?? 5;
-        // Mostrar e resetar botão de apagar
+        document.getElementById('mMin').value   = p.min??5;
         const btn = document.getElementById('btnApagarProduto');
         btn.dataset.confirmar = '';
         btn.innerText = '🗑 APAGAR ARTIGO';
@@ -855,7 +1110,7 @@
         const dot   = document.getElementById('syncDot');
         const label = document.getElementById('syncLabel');
         if (!dot) return;
-        if (state === 'online') {
+        if (state==='online') {
             dot.className   = 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse';
             label.innerText = 'Firebase Sync';
             label.className = 'text-[8px] font-bold text-emerald-500 uppercase tracking-tighter';
@@ -866,66 +1121,48 @@
         }
     }
 
-    function showToast(msg, type = 'success') {
+    function showToast(msg, type='success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        toast.className = `toast ${type === 'success' ? 'bg-emerald-600 border-emerald-400' : 'bg-rose-600 border-rose-400'}`;
+        toast.className = `toast ${type==='success'?'bg-emerald-600 border-emerald-400':'bg-rose-600 border-rose-400'}`;
         toast.innerText = msg;
         container.appendChild(toast);
         setTimeout(() => {
-            toast.style.opacity   = '0';
-            toast.style.transform = 'translateY(-20px)';
-            setTimeout(() => toast.remove(), 300);
+            toast.style.opacity='0';
+            toast.style.transform='translateY(-20px)';
+            setTimeout(()=>toast.remove(),300);
         }, 3000);
     }
 
-    // Gráfico de vendas — 7 dias
+    // Gráfico de vendas 7 dias
     function atualizarGrafico() {
         const canvas = document.getElementById('salesChart');
-        if (!canvas || !canvas.width) return;
+        if (!canvas||!canvas.width) return;
         const ctx = canvas.getContext('2d');
-        const w = canvas.width, h = canvas.height;
-        ctx.clearRect(0, 0, w, h);
-
-        const dias = Array.from({length: 7}, (_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - (6 - i));
-            return d.toLocaleDateString('pt-PT');
+        const w=canvas.width, h=canvas.height;
+        ctx.clearRect(0,0,w,h);
+        const dias = Array.from({length:7},(_,i)=>{
+            const d=new Date(); d.setDate(d.getDate()-(6-i)); return d.toLocaleDateString('pt-PT');
         });
-
         const valores = dias.map(dia =>
-            logs.filter(l => new Date(l.data).toLocaleDateString('pt-PT') === dia && (l.tipo === 'VENDA' || l.tipo === 'FIADO'))
-                .reduce((a,b) => a + (b.qtd * b.preco), 0)
+            logs.filter(l=>new Date(l.data).toLocaleDateString('pt-PT')===dia&&(l.tipo==='VENDA'||l.tipo==='FIADO'))
+                .reduce((a,b)=>a+(b.qtd*b.preco),0)
         );
-
-        const max  = Math.max(...valores, 500);
-        const barW = (w / 7) - 12;
-
-        valores.forEach((v, i) => {
-            const barH = Math.max((v / max) * (h - 20), v > 0 ? 4 : 0);
-            ctx.fillStyle = i === 6 ? '#2563eb' : '#f1f5f9';
-            ctx.beginPath();
-            ctx.roundRect(i * (w / 7) + 6, h - barH, barW, barH, 6);
-            ctx.fill();
+        const max=Math.max(...valores,500), barW=(w/7)-12;
+        valores.forEach((v,i)=>{
+            const barH=Math.max((v/max)*(h-20),v>0?4:0);
+            ctx.fillStyle=i===6?'#2563eb':'#f1f5f9';
+            ctx.beginPath(); ctx.roundRect(i*(w/7)+6,h-barH,barW,barH,6); ctx.fill();
         });
     }
 
-    // Relógio
-    setInterval(() => {
-        const r = document.getElementById('relogio');
-        if (r) r.innerText = new Date().toLocaleTimeString('pt-PT');
-    }, 1000);
+    setInterval(()=>{ const r=document.getElementById('relogio'); if(r) r.innerText=new Date().toLocaleTimeString('pt-PT'); },1000);
 
     window.onload = () => {
         const canvas = document.getElementById('salesChart');
         if (canvas) {
-            canvas.width  = canvas.parentElement.offsetWidth;
-            canvas.height = 140;
-            const ro = new ResizeObserver(() => {
-                canvas.width  = canvas.parentElement.offsetWidth;
-                canvas.height = 140;
-                atualizarGrafico();
-            });
+            canvas.width=canvas.parentElement.offsetWidth; canvas.height=140;
+            const ro=new ResizeObserver(()=>{ canvas.width=canvas.parentElement.offsetWidth; canvas.height=140; atualizarGrafico(); });
             ro.observe(canvas.parentElement);
         }
     };
