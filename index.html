@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UltraDepósito Cloud - v4.0</title>
+    <title>UltraDepósito Cloud - v4.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Firebase Compat SDK (funciona em HTML puro, sem build) -->
+    <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -15,15 +15,15 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
-        .neo-card { background: #ffffff; border: 1px solid rgba(226, 232, 240, 1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); border-radius: 24px; transition: all 0.2s; }
-        .neo-card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04); }
+        .neo-card { background: #ffffff; border: 1px solid rgba(226,232,240,1); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border-radius: 24px; transition: all 0.2s; }
+        .neo-card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04); }
         .btn-primary { background: #1d4ed8; transition: all 0.2s; }
         .btn-primary:hover:not(:disabled) { background: #1e40af; transform: translateY(-1px); }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .modal-hidden { display: none; }
         .modal-visible { display: flex; align-items: center; justify-content: center; z-index: 100; }
-        #toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-        .toast { padding: 12px 24px; border-radius: 20px; color: white; font-weight: 700; font-size: 13px; animation: slideDown 0.3s ease-out; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.1); }
+        #toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { padding: 12px 24px; border-radius: 20px; color: white; font-weight: 700; font-size: 13px; animation: slideDown 0.3s ease-out; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.1); transition: opacity 0.3s, transform 0.3s; }
         @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         canvas { width: 100% !important; height: 140px !important; }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
@@ -55,10 +55,9 @@
                     </div>
                     <div>
                         <h1 class="font-800 text-lg tracking-tight leading-none">UltraDepósito <span class="text-blue-600">Cloud</span></h1>
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Enterprise Edition v4.0</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Enterprise Edition v4.1</span>
                     </div>
                 </div>
-                
                 <div class="flex items-center gap-4">
                     <div class="hidden md:flex flex-col items-end mr-2">
                         <span id="relogio" class="text-xs font-black text-slate-700">00:00:00</span>
@@ -72,7 +71,7 @@
         </nav>
 
         <main class="max-w-7xl mx-auto p-6 space-y-6">
-            
+
             <!-- DASHBOARD -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -108,39 +107,80 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
+
                 <!-- PDV -->
                 <div class="lg:col-span-4 space-y-6">
                     <section class="neo-card p-8 border-t-8 border-blue-600 shadow-xl shadow-blue-50">
                         <h2 class="text-xl font-800 mb-6 flex items-center gap-2">
                             <i data-lucide="zap" class="text-blue-600 fill-blue-600"></i> Terminal PDV
                         </h2>
-                        <div class="space-y-5">
+                        <div class="space-y-4">
+
+                            <!-- Modo VENDA / STOCK / FIADO -->
                             <div class="flex gap-1 bg-slate-100 p-1.5 rounded-2xl">
-                                <button onclick="setModo('VENDA')" id="btnVenda" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-blue-700">VENDA</button>
+                                <button onclick="setModo('VENDA')"   id="btnVenda"   class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-blue-700">VENDA</button>
                                 <button onclick="setModo('ENTRADA')" id="btnEntrada" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">STOCK</button>
-                                <button onclick="setModo('FIADO')" id="btnFiado" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">FIADO</button>
+                                <button onclick="setModo('FIADO')"   id="btnFiado"   class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">FIADO</button>
                             </div>
+
+                            <!-- Cliente (só FIADO) -->
                             <div id="clienteContainer" class="hidden">
                                 <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Cliente</label>
-                                <input type="text" id="pdvCliente" class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none" placeholder="Nome do devedor">
+                                <input type="text" id="pdvCliente"
+                                    class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none"
+                                    placeholder="Nome do devedor">
                             </div>
+
+                            <!-- Artigo -->
                             <div>
                                 <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Artigo</label>
-                                <select id="pdvProduto" onchange="atualizarPrecoPdv()" class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none cursor-pointer"></select>
+                                <select id="pdvProduto" onchange="atualizarPrecoPdv()"
+                                    class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none cursor-pointer"></select>
                             </div>
+
+                            <!-- Qtd + Preço -->
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Qtd</label>
-                                    <!-- FIX: onkeydown (não deprecated) -->
-                                    <input type="number" id="pdvQtd" value="1" min="1" class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black focus:ring-2 ring-blue-600 outline-none" onkeydown="if(event.key==='Enter') confirmarOperacao()">
+                                    <input type="number" id="pdvQtd" value="1" min="1"
+                                        class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black focus:ring-2 ring-blue-600 outline-none"
+                                        oninput="atualizarTotal()"
+                                        onkeydown="if(event.key==='Enter') confirmarOperacao()">
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Preço Un.</label>
-                                    <input type="number" id="pdvPreco" step="0.01" class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black text-blue-700 outline-none">
+                                    <input type="number" id="pdvPreco" step="0.01"
+                                        class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black text-blue-700 outline-none"
+                                        oninput="atualizarTotal()">
                                 </div>
                             </div>
-                            <button id="btnConfirmarPDV" onclick="confirmarOperacao()" class="w-full btn-primary text-white py-5 rounded-[22px] font-800 flex items-center justify-center gap-3 shadow-xl shadow-blue-100 active:scale-95">
+
+                            <!-- Desconto % (oculto em ENTRADA) -->
+                            <div id="descontoContainer">
+                                <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Desconto (%)</label>
+                                <input type="number" id="pdvDesconto" value="0" min="0" max="100" step="0.5"
+                                    class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-amber-400 rounded-2xl font-black text-amber-600 outline-none"
+                                    oninput="atualizarTotal()">
+                            </div>
+
+                            <!-- Forma de Recebimento (só VENDA) -->
+                            <div id="formaPagContainer">
+                                <label class="text-[10px] font-800 text-slate-400 uppercase ml-2 block mb-2">Forma de Recebimento</label>
+                                <div class="flex gap-1 bg-slate-100 p-1.5 rounded-2xl">
+                                    <button onclick="setFormaPag('DINHEIRO')" id="fpDinheiro" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-emerald-700">💵 DINHEIRO</button>
+                                    <button onclick="setFormaPag('PIX')"      id="fpPix"      class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">⚡ PIX</button>
+                                    <button onclick="setFormaPag('CARTAO')"   id="fpCartao"   class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">💳 CARTÃO</button>
+                                </div>
+                            </div>
+
+                            <!-- Total ao vivo (oculto em ENTRADA) -->
+                            <div id="totalPreviewContainer" class="bg-blue-50 rounded-2xl px-4 py-3 flex justify-between items-center">
+                                <span class="text-[10px] font-800 text-blue-400 uppercase tracking-wider">Total a Cobrar</span>
+                                <span id="totalPreview" class="text-lg font-black text-blue-700">R$ 0,00</span>
+                            </div>
+
+                            <button id="btnConfirmarPDV" onclick="confirmarOperacao()"
+                                class="w-full btn-primary text-white py-5 rounded-[22px] font-800 flex items-center justify-center gap-3 shadow-xl shadow-blue-100 active:scale-95">
                                 REGISTAR TRANSAÇÃO
                             </button>
                         </div>
@@ -164,7 +204,8 @@
                                 <h2 class="text-2xl font-800">Inventário Geral</h2>
                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sincronizado em tempo real</p>
                             </div>
-                            <button onclick="abrirModalProduto()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-800 flex items-center gap-3 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                            <button onclick="abrirModalProduto()"
+                                class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-800 flex items-center gap-3 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
                                 <i data-lucide="plus-circle"></i> NOVO ARTIGO
                             </button>
                         </div>
@@ -179,7 +220,8 @@
                     <h2 class="text-lg font-800 flex items-center gap-3">
                         <i data-lucide="shield-check" class="text-blue-600"></i> Histórico de Auditoria
                     </h2>
-                    <button onclick="abrirModalConfirmacao()" class="text-[10px] font-black text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 transition-all">LIMPAR LOGS</button>
+                    <button onclick="abrirModalConfirmacao()"
+                        class="text-[10px] font-black text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 transition-all">LIMPAR LOGS</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
@@ -197,7 +239,6 @@
                 </div>
             </section>
         </main>
-
     </div><!-- /app -->
 
     <!-- MODAL PRODUTO -->
@@ -231,7 +272,14 @@
                         <input type="number" id="mMin" class="w-full mt-1 p-5 bg-slate-50 border rounded-[22px] font-black">
                     </div>
                 </div>
-                <div class="flex gap-4 pt-6">
+                <!-- Apagar (só visível em modo edição) -->
+                <div id="apagarContainer" class="hidden">
+                    <button id="btnApagarProduto" onclick="apagarProduto()"
+                        class="w-full py-4 bg-rose-50 text-rose-600 border border-rose-200 rounded-[20px] font-800 hover:bg-rose-600 hover:text-white transition-all text-sm">
+                        🗑 APAGAR ARTIGO
+                    </button>
+                </div>
+                <div class="flex gap-4">
                     <button onclick="fecharModalProduto()" class="flex-1 py-5 bg-slate-100 rounded-[25px] font-800 text-slate-500 hover:bg-slate-200">CANCELAR</button>
                     <button onclick="salvarProduto()" class="flex-[2] py-5 bg-blue-600 text-white rounded-[25px] font-800 shadow-xl shadow-blue-100">CONFIRMAR</button>
                 </div>
@@ -250,7 +298,8 @@
             <div class="space-y-6">
                 <div>
                     <label class="text-[10px] font-800 text-slate-400 uppercase">Valor a Receber (R$)</label>
-                    <input type="number" id="pagamentoValor" step="0.01" class="w-full mt-2 p-5 bg-slate-50 border-2 border-emerald-500 rounded-[22px] font-black text-2xl text-center outline-none">
+                    <input type="number" id="pagamentoValor" step="0.01"
+                        class="w-full mt-2 p-5 bg-slate-50 border-2 border-emerald-500 rounded-[22px] font-black text-2xl text-center outline-none">
                     <p id="pagamentoMax" class="text-[10px] font-bold text-slate-400 mt-2 uppercase">Dívida Total: R$ 0,00</p>
                 </div>
                 <div class="flex gap-4">
@@ -261,7 +310,7 @@
         </div>
     </div>
 
-    <!-- MODAL CONFIRMAÇÃO (limpar logs) -->
+    <!-- MODAL CONFIRMAÇÃO limpar logs -->
     <div id="modalConfirmacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden p-6">
         <div class="bg-white rounded-[40px] p-10 w-full max-w-sm shadow-2xl text-center">
             <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -278,44 +327,46 @@
 
     <script>
     // ============================================================
-    // FIREBASE CONFIG — substitui pelos teus dados reais
+    // FIREBASE CONFIG
     // ============================================================
     const firebaseConfig = {
-        apiKey: "AIzaSyCPq8-B4l-kThTXtX9CVBTdpzarBObUYxI",
-        authDomain: "ch-geladas.firebaseapp.com",
-        projectId: "ch-geladas",
-        storageBucket: "ch-geladas.firebasestorage.app",
+        apiKey:            "AIzaSyCPq8-B4l-kThTXtX9CVBTdpzarBObUYxI",
+        authDomain:        "ch-geladas.firebaseapp.com",
+        projectId:         "ch-geladas",
+        storageBucket:     "ch-geladas.firebasestorage.app",
         messagingSenderId: "859746983655",
-        appId: "1:859746983655:web:d126d82167b0ccab3a8c42"
+        appId:             "1:859746983655:web:d126d82167b0ccab3a8c42"
     };
 
-    // Caminhos Firestore (alinhados com ecossistema CH Geladas)
-    const APP_ID   = 'ultra-deposito';
-    const BASE     = `deposito`; // raiz isolada para não colidir com outros módulos
+    const BASE     = 'deposito';
     const COL_PROD = `${BASE}/dados/produtos`;
     const COL_LOGS = `${BASE}/dados/logs`;
     const DOC_FIAD = `${BASE}/dados/financeiro/fiado`;
 
     // ============================================================
-    // ESTADO LOCAL (cache dos listeners em tempo real)
+    // ESTADO LOCAL
     // ============================================================
-    let produtos    = [];
-    let logs        = [];
-    let fiado       = {};
-    let modoAtual   = 'VENDA';
+    let produtos       = [];
+    let logs           = [];
+    let logsHoje       = [];      // FIX: listener dedicado → stats diárias precisas
+    let fiado          = {};
+    let modoAtual      = 'VENDA';
+    let formaPagamento = 'DINHEIRO';
     let currentFiadoUser  = null;
     let estaProcessando   = false;
     let unsubscribers     = [];
+    let loadingTimeout;
 
     // ============================================================
-    // INIT FIREBASE
+    // INIT FIREBASE + AUTH
     // ============================================================
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    const auth   = firebase.auth();
     const fstore = firebase.firestore();
 
     auth.onAuthStateChanged(user => {
         if (user) {
+            clearTimeout(loadingTimeout);
             setSyncStatus('online');
             iniciarListeners();
             document.getElementById('loadingScreen').style.display = 'none';
@@ -323,16 +374,39 @@
         }
     });
 
-    auth.signInAnonymously().catch(err => {
+    auth.signInAnonymously().catch(() => setSyncStatus('offline'));
+
+    // FIX BUG 1: Timeout de segurança — app não fica presa se Firebase offline
+    loadingTimeout = setTimeout(() => {
+        const ls = document.getElementById('loadingScreen');
+        if (ls && ls.style.display !== 'none') {
+            ls.innerHTML = `
+                <div class="text-center space-y-4 p-8 max-w-xs">
+                    <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
+                        <i data-lucide="wifi-off" class="w-8 h-8"></i>
+                    </div>
+                    <p class="text-sm font-black text-slate-700">Sem ligação ao servidor</p>
+                    <p class="text-xs text-slate-400">Verifique a sua ligação ou as regras do Firebase.</p>
+                    <button onclick="forcarModoOffline()"
+                        class="btn-primary text-white px-8 py-3 rounded-2xl font-800 text-sm w-full">
+                        CONTINUAR OFFLINE
+                    </button>
+                </div>`;
+            lucide.createIcons();
+        }
+    }, 8000);
+
+    function forcarModoOffline() {
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('app').classList.remove('hidden');
         setSyncStatus('offline');
-        showToast('Erro de autenticação Firebase', 'error');
-    });
+        showToast('Modo offline — dados podem estar desatualizados', 'error');
+    }
 
     // ============================================================
     // LISTENERS EM TEMPO REAL
     // ============================================================
     function iniciarListeners() {
-        // Cancelar listeners anteriores
         unsubscribers.forEach(fn => fn());
         unsubscribers = [];
 
@@ -344,7 +418,7 @@
             }, () => showToast('Erro ao sincronizar produtos', 'error'))
         );
 
-        // Logs (últimos 50, ordenados por data desc)
+        // Logs recentes (ledger + gráfico)
         unsubscribers.push(
             fstore.collection(COL_LOGS)
                 .orderBy('data', 'desc')
@@ -353,6 +427,18 @@
                     logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     renderizar();
                 }, () => showToast('Erro ao sincronizar logs', 'error'))
+        );
+
+        // FIX BUG 2: Listener dedicado para stats do dia — sem limite de 50 docs
+        const inicioHoje = new Date();
+        inicioHoje.setHours(0, 0, 0, 0);
+        unsubscribers.push(
+            fstore.collection(COL_LOGS)
+                .where('data', '>=', inicioHoje.toISOString())
+                .onSnapshot(snap => {
+                    logsHoje = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderizar();
+                }, () => { /* fallback silencioso: calcularStats usa logs gerais */ })
         );
 
         // Fiado
@@ -365,15 +451,15 @@
     }
 
     // ============================================================
-    // RENDER (só UI — dados vêm dos listeners)
+    // RENDER
     // ============================================================
     function renderizar() {
         const stats = calcularStats();
 
-        document.getElementById('dashVendasHoje').innerText  = `R$ ${stats.vendasHoje.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
-        document.getElementById('dashLucroHoje').innerText   = `Lucro Hoje: R$ ${stats.lucroHoje.toFixed(2)}`;
-        document.getElementById('dashFiado').innerText       = `R$ ${stats.totalFiado.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
-        document.getElementById('dashPatrimonio').innerText  = `R$ ${stats.patrimonio.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
+        document.getElementById('dashVendasHoje').innerText = `R$ ${stats.vendasHoje.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
+        document.getElementById('dashLucroHoje').innerText  = `Lucro Hoje: R$ ${stats.lucroHoje.toFixed(2)}`;
+        document.getElementById('dashFiado').innerText      = `R$ ${stats.totalFiado.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
+        document.getElementById('dashPatrimonio').innerText = `R$ ${stats.patrimonio.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
 
         // Select PDV
         const select = document.getElementById('pdvProduto');
@@ -382,7 +468,7 @@
             .sort((a,b) => a.nome.localeCompare(b.nome))
             .map(p => `<option value="${p.id}" ${p.id === atual ? 'selected' : ''}>${p.nome} (Disp: ${p.qtd})</option>`)
             .join('');
-        if(!atual && produtos.length > 0) atualizarPrecoPdv();
+        if (!atual && produtos.length > 0) atualizarPrecoPdv();
 
         // Grid Stock
         document.getElementById('gridStock').innerHTML = [...produtos]
@@ -405,20 +491,19 @@
                     </div>
                     <div class="flex flex-col items-end gap-3">
                         <div class="flex gap-1.5">
-                            <button onclick="ajusteRapido('${p.id}', -1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-rose-50 hover:text-rose-600 font-bold transition-all">-</button>
-                            <button onclick="ajusteRapido('${p.id}', 1)"  class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:text-blue-600 font-bold transition-all">+</button>
+                            <button onclick="ajusteRapido('${p.id}', -1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-rose-50 hover:text-rose-600 font-bold transition-all">−</button>
+                            <button onclick="ajusteRapido('${p.id}',  1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:text-blue-600 font-bold transition-all">+</button>
                         </div>
                         <span class="text-[8px] font-black px-2 py-0.5 bg-slate-100 rounded-lg text-slate-500 uppercase">
-                            Lucro: ${(((p.venda - p.custo) / p.venda) * 100).toFixed(0)}%
+                            Margem: ${p.venda > 0 ? (((p.venda - p.custo) / p.venda) * 100).toFixed(0) : 0}%
                         </span>
                     </div>
                 </div>
                 ${p.qtd <= p.min ? '<div class="mt-4 text-[8px] font-black text-rose-500 uppercase tracking-widest text-center py-1 bg-rose-100 rounded-lg">Reposição Necessária</div>' : ''}
-            </div>
-        `).join('');
+            </div>`).join('');
 
         // Fiados
-        const devedores = Object.entries(fiado).filter(([_,v]) => v > 0);
+        const devedores = Object.entries(fiado).filter(([,v]) => v > 0);
         document.getElementById('listaDevedores').innerHTML = devedores.length
             ? devedores.map(([nome, valor]) => `
                 <div class="flex justify-between items-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all">
@@ -426,48 +511,63 @@
                         <p class="text-xs font-black truncate pr-2">${nome}</p>
                         <p class="text-[10px] text-rose-400 font-black mt-0.5 italic">Débito: R$ ${valor.toFixed(2)}</p>
                     </div>
-                    <button onclick="abrirModalPagamento('${nome}', ${valor})" class="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all">RECEBER</button>
+                    <button onclick="abrirModalPagamento('${nome}', ${valor})"
+                        class="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all">RECEBER</button>
                 </div>`).join('')
             : '<p class="text-[10px] text-slate-500 italic text-center py-4">Sem contas pendentes.</p>';
+
+        // Badges de forma de pagamento
+        const fpStyle = {
+            DINHEIRO: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            PIX:      'bg-violet-50 text-violet-700 border-violet-200',
+            CARTAO:   'bg-sky-50 text-sky-700 border-sky-200'
+        };
+        const fpIcon = { DINHEIRO: '💵', PIX: '⚡', CARTAO: '💳' };
 
         // Ledger
         document.getElementById('listaLogs').innerHTML = logs.map(l => `
             <tr class="hover:bg-slate-50 transition-all">
-                <td class="py-4 pl-4 text-[10px] font-mono text-slate-400">${new Date(l.data).toLocaleTimeString('pt-PT')}</td>
+                <td class="py-4 pl-4 text-[10px] font-mono text-slate-400 whitespace-nowrap">${new Date(l.data).toLocaleString('pt-PT', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td>
                 <td class="py-4">
                     <span class="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase border ${
-                        l.tipo === 'VENDA'     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        l.tipo === 'FIADO'     ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                        l.tipo === 'AJUSTE'    ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                        l.tipo === 'PAGAMENTO' ? 'bg-emerald-500 text-white border-transparent' :
-                                                 'bg-blue-50 text-blue-700 border-blue-200'
+                        l.tipo === 'VENDA'    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        l.tipo === 'FIADO'    ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                        l.tipo === 'AJUSTE+'  ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        l.tipo === 'AJUSTE-'  ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        l.tipo === 'AJUSTE'   ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        l.tipo === 'PAGAMENTO'? 'bg-emerald-500 text-white border-transparent' :
+                                               'bg-blue-50 text-blue-700 border-blue-200'
                     }">${l.tipo}</span>
                 </td>
                 <td class="py-4 font-800 text-slate-700">
-                    ${l.nome}
-                    ${l.cliente ? `<span class="text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded ml-2">C: ${l.cliente}</span>` : ''}
+                    <span class="text-sm">${l.nome}</span>
+                    ${l.cliente        ? `<span class="ml-1 text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">👤 ${l.cliente}</span>` : ''}
+                    ${l.formaPagamento ? `<span class="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded border ${fpStyle[l.formaPagamento] || 'bg-slate-50 text-slate-500 border-slate-200'}">${fpIcon[l.formaPagamento] || ''} ${l.formaPagamento}</span>` : ''}
+                    ${l.descontoPorc > 0 ? `<span class="ml-1 text-[9px] font-black bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">−${l.descontoPorc}%</span>` : ''}
                 </td>
-                <td class="py-4 text-center font-black text-xs">${l.qtd}</td>
+                <td class="py-4 text-center font-black text-xs">${Math.abs(l.qtd ?? 0)}</td>
                 <td class="py-4 text-right pr-4 font-black ${l.tipo === 'ENTRADA' ? 'text-blue-600' : 'text-slate-900'}">
-                    R$ ${(l.qtd * (l.preco || 0)).toFixed(2)}
+                    R$ ${(Math.abs(l.qtd ?? 0) * (l.preco || 0)).toFixed(2)}
+                    ${l.descontoPorc > 0 && l.precoBase ? `<div class="text-[9px] font-bold text-slate-400 line-through">R$ ${(Math.abs(l.qtd)*l.precoBase).toFixed(2)}</div>` : ''}
                 </td>
-            </tr>
-        `).join('');
+            </tr>`).join('');
 
         atualizarGrafico();
         lucide.createIcons();
     }
 
     // ============================================================
-    // STATS
+    // STATS — FIX BUG 2: usa logsHoje com fallback
     // ============================================================
     function calcularStats() {
-        const hoje       = new Date().toDateString();
-        const logsHoje   = logs.filter(l => new Date(l.data).toDateString() === hoje && (l.tipo === 'VENDA' || l.tipo === 'FIADO'));
-        const vendasHoje = logsHoje.reduce((a, b) => a + (b.qtd * b.preco), 0);
-        const lucroHoje  = logsHoje.reduce((a, b) => a + (b.qtd * (b.preco - (b.custoNoMomento || 0))), 0);
-        const totalFiado = Object.values(fiado).reduce((a, b) => a + b, 0);
-        const patrimonio = produtos.reduce((a, b) => a + (b.qtd * b.custo), 0);
+        const fonte = logsHoje.length > 0
+            ? logsHoje
+            : logs.filter(l => new Date(l.data).toDateString() === new Date().toDateString());
+        const logsVenda  = fonte.filter(l => l.tipo === 'VENDA' || l.tipo === 'FIADO');
+        const vendasHoje = logsVenda.reduce((a,b) => a + (b.qtd * b.preco), 0);
+        const lucroHoje  = logsVenda.reduce((a,b) => a + (b.qtd * (b.preco - (b.custoNoMomento || 0))), 0);
+        const totalFiado = Object.values(fiado).reduce((a,b) => a + b, 0);
+        const patrimonio = produtos.reduce((a,b) => a + (b.qtd * b.custo), 0);
         return { vendasHoje, lucroHoje, totalFiado, patrimonio };
     }
 
@@ -477,59 +577,75 @@
     async function confirmarOperacao() {
         if (estaProcessando) return;
 
-        const prodId    = document.getElementById('pdvProduto').value;
-        const qtd       = parseInt(document.getElementById('pdvQtd').value);
-        const precoMan  = parseFloat(document.getElementById('pdvPreco').value);
-        const cliente   = document.getElementById('pdvCliente').value.trim();
-        const p         = produtos.find(x => x.id === prodId);
+        const prodId       = document.getElementById('pdvProduto').value;
+        const qtd          = parseInt(document.getElementById('pdvQtd').value);
+        const precoManual  = parseFloat(document.getElementById('pdvPreco').value);
+        const descontoPorc = parseFloat(document.getElementById('pdvDesconto').value) || 0;
+        const cliente      = document.getElementById('pdvCliente').value.trim();
+        const p            = produtos.find(x => x.id === prodId);
 
-        if (!p || isNaN(qtd) || qtd <= 0) return showToast("Valores inválidos!", "error");
-        if (modoAtual === 'FIADO' && !cliente)  return showToast("Indique o cliente!", "error");
+        if (!p || isNaN(qtd) || qtd <= 0) return showToast('Valores inválidos!', 'error');
+        if (modoAtual === 'FIADO' && !cliente) return showToast('Indique o cliente!', 'error');
 
         estaProcessando = true;
         document.getElementById('btnConfirmarPDV').disabled = true;
 
         try {
             const custoNoMomento = p.custo;
-            const preco = isNaN(precoMan) ? (modoAtual === 'ENTRADA' ? p.custo : p.venda) : precoMan;
+            const precoBase = isNaN(precoManual)
+                ? (modoAtual === 'ENTRADA' ? p.custo : p.venda)
+                : precoManual;
+            // NOVO: aplica desconto (só VENDA/FIADO)
+            const preco = modoAtual === 'ENTRADA'
+                ? precoBase
+                : precoBase * (1 - descontoPorc / 100);
+
             const prodRef = fstore.collection(COL_PROD).doc(p.id);
 
             if (modoAtual === 'VENDA' || modoAtual === 'FIADO') {
-                if (p.qtd < qtd) return showToast("Stock insuficiente!", "error");
+                if (p.qtd < qtd) return showToast('Stock insuficiente!', 'error');
                 await prodRef.update({ qtd: firebase.firestore.FieldValue.increment(-qtd) });
-
                 if (modoAtual === 'FIADO') {
                     const novoValor = (fiado[cliente] || 0) + (qtd * preco);
                     await fstore.doc(DOC_FIAD).set({ ...fiado, [cliente]: novoValor });
                 }
-            } else if (modoAtual === 'ENTRADA') {
+            } else {
+                // ENTRADA: custo médio ponderado
                 const novaQtd   = p.qtd + qtd;
-                const novoCusto = ((p.qtd * p.custo) + (qtd * preco)) / novaQtd;
-                await prodRef.update({ qtd: novaQtd, custo: novoCusto });
+                const novoCusto = ((p.qtd * p.custo) + (qtd * precoBase)) / novaQtd;
+                await prodRef.update({ qtd: novaQtd, custo: parseFloat(novoCusto.toFixed(4)) });
             }
 
             await fstore.collection(COL_LOGS).add({
-                tipo: modoAtual,
-                nome: p.nome,
-                cliente: modoAtual === 'FIADO' ? cliente : null,
+                tipo:           modoAtual,
+                nome:           p.nome,
+                cliente:        modoAtual === 'FIADO' ? cliente : null,
                 qtd,
-                preco,
+                preco,                                                  // preço final (após desconto)
+                precoBase,                                              // preço original
+                descontoPorc:   modoAtual !== 'ENTRADA' ? descontoPorc : 0,
+                formaPagamento: modoAtual === 'VENDA' ? formaPagamento : null,
                 custoNoMomento,
-                data: new Date().toISOString(),
-                userId: auth.currentUser?.uid || 'anon'
+                data:           new Date().toISOString(),
+                userId:         auth.currentUser?.uid || 'anon'
             });
 
-            document.getElementById('pdvQtd').value    = 1;
-            document.getElementById('pdvCliente').value = '';
-            showToast("Operação registada!");
+            // Reset campos
+            document.getElementById('pdvQtd').value      = 1;
+            document.getElementById('pdvCliente').value  = '';
+            document.getElementById('pdvDesconto').value = 0;
+            setFormaPag('DINHEIRO');
+            atualizarTotal();
+            showToast('✓ Operação registada!');
         } catch (err) {
-            showToast("Erro na Cloud: " + err.message, "error");
+            showToast('Erro na Cloud: ' + err.message, 'error');
         } finally {
             estaProcessando = false;
             document.getElementById('btnConfirmarPDV').disabled = false;
         }
     }
 
+    // FIX BUG 3: tipo correto + qtd absoluta
     async function ajusteRapido(id, delta) {
         const p = produtos.find(x => x.id === id);
         if (!p || (delta < 0 && p.qtd <= 0)) return;
@@ -538,45 +654,76 @@
                 qtd: firebase.firestore.FieldValue.increment(delta)
             });
             await fstore.collection(COL_LOGS).add({
-                tipo: 'AJUSTE', nome: p.nome, qtd: delta,
-                preco: 0, custoNoMomento: p.custo,
-                data: new Date().toISOString(),
-                userId: auth.currentUser?.uid || 'anon'
+                tipo:           delta > 0 ? 'AJUSTE+' : 'AJUSTE-',
+                nome:           p.nome,
+                qtd:            Math.abs(delta),        // sempre positivo
+                preco:          0,
+                descontoPorc:   0,
+                custoNoMomento: p.custo,
+                data:           new Date().toISOString(),
+                userId:         auth.currentUser?.uid || 'anon'
             });
-            showToast(delta > 0 ? "+1 Unidade" : "-1 Unidade");
-        } catch(err) { showToast("Erro ao ajustar", "error"); }
+            showToast(delta > 0 ? '+1 unidade adicionada' : '−1 unidade removida');
+        } catch(err) { showToast('Erro ao ajustar', 'error'); }
     }
 
     async function salvarProduto() {
-        const id  = document.getElementById('mId').value;
+        const id    = document.getElementById('mId').value;
         const dados = {
-            nome:  document.getElementById('mNome').value,
+            nome:  document.getElementById('mNome').value.trim(),
             custo: parseFloat(document.getElementById('mCusto').value) || 0,
             venda: parseFloat(document.getElementById('mVenda').value) || 0,
-            qtd:   parseInt(document.getElementById('mQtd').value)   || 0,
-            min:   parseInt(document.getElementById('mMin').value)   || 5
+            qtd:   parseInt(document.getElementById('mQtd').value)     || 0,
+            min:   parseInt(document.getElementById('mMin').value)     || 5
         };
-        if (!dados.nome) return showToast("Preencha o nome!", "error");
+        if (!dados.nome) return showToast('Preencha o nome!', 'error');
         try {
             if (id) await fstore.collection(COL_PROD).doc(id).update(dados);
             else    await fstore.collection(COL_PROD).add(dados);
             fecharModalProduto();
-            showToast("Inventário atualizado!");
-        } catch(err) { showToast("Erro ao guardar: " + err.message, "error"); }
+            showToast('Inventário atualizado!');
+        } catch(err) { showToast('Erro ao guardar: ' + err.message, 'error'); }
+    }
+
+    // NOVO: apagar produto com confirmação de dois cliques
+    async function apagarProduto() {
+        const btn = document.getElementById('btnApagarProduto');
+        if (btn.dataset.confirmar !== 'sim') {
+            btn.dataset.confirmar = 'sim';
+            btn.innerText = '⚠️ CONFIRMAR EXCLUSÃO?';
+            btn.classList.replace('bg-rose-50',    'bg-rose-600');
+            btn.classList.replace('text-rose-600', 'text-white');
+            btn.classList.replace('border-rose-200','border-rose-700');
+            setTimeout(() => {
+                if (btn.dataset.confirmar === 'sim') {
+                    btn.dataset.confirmar = '';
+                    btn.innerText = '🗑 APAGAR ARTIGO';
+                    btn.classList.replace('bg-rose-600',   'bg-rose-50');
+                    btn.classList.replace('text-white',    'text-rose-600');
+                    btn.classList.replace('border-rose-700','border-rose-200');
+                }
+            }, 3500);
+            return;
+        }
+        const id = document.getElementById('mId').value;
+        if (!id) return;
+        try {
+            await fstore.collection(COL_PROD).doc(id).delete();
+            fecharModalProduto();
+            showToast('Artigo eliminado do inventário.');
+        } catch(err) { showToast('Erro ao apagar: ' + err.message, 'error'); }
     }
 
     async function processarPagamento() {
         const valorPago = parseFloat(document.getElementById('pagamentoValor').value);
-        if (isNaN(valorPago) || valorPago <= 0) return showToast("Valor inválido", "error");
+        if (isNaN(valorPago) || valorPago <= 0) return showToast('Valor inválido', 'error');
         const divida = fiado[currentFiadoUser] || 0;
-        if (valorPago > divida + 0.01) return showToast("Pagamento excede a dívida!", "error");
-
+        if (valorPago > divida + 0.01) return showToast('Pagamento excede a dívida!', 'error');
         try {
             const novoSaldo = divida - valorPago;
             const novoFiado = { ...fiado };
             if (novoSaldo <= 0.01) delete novoFiado[currentFiadoUser];
             else novoFiado[currentFiadoUser] = novoSaldo;
-
             await fstore.doc(DOC_FIAD).set(novoFiado);
             await fstore.collection(COL_LOGS).add({
                 tipo: 'PAGAMENTO', nome: `Recebimento: ${currentFiadoUser}`,
@@ -585,19 +732,27 @@
                 userId: auth.currentUser?.uid || 'anon'
             });
             fecharModalPagamento();
-            showToast("Recebido com sucesso!");
-        } catch(err) { showToast("Erro no pagamento", "error"); }
+            showToast('✓ Recebido com sucesso!');
+        } catch(err) { showToast('Erro no pagamento', 'error'); }
     }
 
+    // FIX BUG 4: loop para apagar >500 logs (batch limit = 500)
     async function confirmarLimparHistorico() {
+        fecharModalConfirmacao();
+        showToast('A limpar logs...');
         try {
-            const batch = fstore.batch();
-            const snap  = await fstore.collection(COL_LOGS).limit(500).get();
-            snap.docs.forEach(d => batch.delete(d.ref));
-            await batch.commit();
-            fecharModalConfirmacao();
-            showToast("Logs eliminados.");
-        } catch(err) { showToast("Erro ao limpar", "error"); }
+            let safetyCounter = 0;
+            let snap;
+            do {
+                const batch = fstore.batch();
+                snap = await fstore.collection(COL_LOGS).limit(450).get();
+                if (snap.empty) break;
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                safetyCounter++;
+            } while (!snap.empty && safetyCounter < 20); // máx ~9000 logs
+            showToast('Logs eliminados. ✓');
+        } catch(err) { showToast('Erro ao limpar: ' + err.message, 'error'); }
     }
 
     // ============================================================
@@ -605,31 +760,60 @@
     // ============================================================
     function setModo(m) {
         modoAtual = m;
-        ['btnVenda','btnEntrada','btnFiado'].forEach(id => {
-            const btn = document.getElementById(id);
-            const ativo = id === `btn${m.charAt(0)+m.slice(1).toLowerCase()}`;
-            btn.className = ativo
+        const btnMap = { VENDA: 'btnVenda', ENTRADA: 'btnEntrada', FIADO: 'btnFiado' };
+        Object.entries(btnMap).forEach(([modo, id]) => {
+            document.getElementById(id).className = modo === m
                 ? 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-blue-700'
                 : 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400';
         });
-        document.getElementById('clienteContainer').className = m === 'FIADO' ? 'block' : 'hidden';
+        const show = cls => cls;
+        const hide = 'hidden';
+        document.getElementById('clienteContainer').className      = m === 'FIADO'   ? show('block') : hide;
+        document.getElementById('descontoContainer').className     = m !== 'ENTRADA' ? show('block') : hide;
+        document.getElementById('formaPagContainer').className     = m === 'VENDA'   ? show('block') : hide;
+        document.getElementById('totalPreviewContainer').className = m !== 'ENTRADA'
+            ? 'bg-blue-50 rounded-2xl px-4 py-3 flex justify-between items-center'
+            : 'hidden';
         atualizarPrecoPdv();
+    }
+
+    function setFormaPag(f) {
+        formaPagamento = f;
+        const cores = { DINHEIRO: 'text-emerald-700', PIX: 'text-violet-700', CARTAO: 'text-sky-700' };
+        [['DINHEIRO','fpDinheiro'],['PIX','fpPix'],['CARTAO','fpCartao']].forEach(([fp, id]) => {
+            document.getElementById(id).className = fp === f
+                ? `flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm ${cores[fp]}`
+                : 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400';
+        });
     }
 
     function atualizarPrecoPdv() {
         const p = produtos.find(x => x.id === document.getElementById('pdvProduto').value);
         if (p) document.getElementById('pdvPreco').value = modoAtual === 'ENTRADA' ? p.custo : p.venda;
+        atualizarTotal();
+    }
+
+    // NOVO: total ao vivo com desconto aplicado
+    function atualizarTotal() {
+        if (modoAtual === 'ENTRADA') return;
+        const qtd   = parseFloat(document.getElementById('pdvQtd').value)      || 0;
+        const preco = parseFloat(document.getElementById('pdvPreco').value)    || 0;
+        const desc  = parseFloat(document.getElementById('pdvDesconto').value) || 0;
+        const total = qtd * preco * (1 - desc / 100);
+        const el = document.getElementById('totalPreview');
+        if (el) el.innerText = `R$ ${total.toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
     }
 
     function abrirModalProduto() {
         document.getElementById('modalTitle').innerText = 'Novo Artigo';
         document.getElementById('mId').value = '';
         document.querySelectorAll('#modalProduto input:not([type=hidden])').forEach(i => i.value = '');
-        document.getElementById('modalProduto').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6";
+        document.getElementById('apagarContainer').className = 'hidden';
+        document.getElementById('modalProduto').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6';
     }
 
     function fecharModalProduto() {
-        document.getElementById('modalProduto').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden";
+        document.getElementById('modalProduto').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden';
     }
 
     function editarProduto(id) {
@@ -641,8 +825,14 @@
         document.getElementById('mCusto').value = p.custo;
         document.getElementById('mVenda').value = p.venda;
         document.getElementById('mQtd').value   = p.qtd;
-        document.getElementById('mMin').value   = p.min;
-        document.getElementById('modalProduto').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6";
+        document.getElementById('mMin').value   = p.min ?? 5;
+        // Mostrar e resetar botão de apagar
+        const btn = document.getElementById('btnApagarProduto');
+        btn.dataset.confirmar = '';
+        btn.innerText = '🗑 APAGAR ARTIGO';
+        btn.className = 'w-full py-4 bg-rose-50 text-rose-600 border border-rose-200 rounded-[20px] font-800 hover:bg-rose-600 hover:text-white transition-all text-sm';
+        document.getElementById('apagarContainer').className = 'block';
+        document.getElementById('modalProduto').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6';
     }
 
     function abrirModalPagamento(nome, valor) {
@@ -650,16 +840,16 @@
         document.getElementById('pagamentoNome').innerText = nome;
         document.getElementById('pagamentoMax').innerText  = `Dívida Total: R$ ${valor.toFixed(2)}`;
         document.getElementById('pagamentoValor').value    = valor.toFixed(2);
-        document.getElementById('modalPagamento').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6";
+        document.getElementById('modalPagamento').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6';
     }
 
     function fecharModalPagamento() {
-        document.getElementById('modalPagamento').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden";
+        document.getElementById('modalPagamento').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden';
         currentFiadoUser = null;
     }
 
-    function abrirModalConfirmacao()  { document.getElementById('modalConfirmacao').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6"; }
-    function fecharModalConfirmacao() { document.getElementById('modalConfirmacao').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden"; }
+    function abrirModalConfirmacao()  { document.getElementById('modalConfirmacao').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6'; }
+    function fecharModalConfirmacao() { document.getElementById('modalConfirmacao').className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden'; }
 
     function setSyncStatus(state) {
         const dot   = document.getElementById('syncDot');
@@ -689,29 +879,30 @@
         }, 3000);
     }
 
-    // FIX: Gráfico responsivo com ResizeObserver
+    // Gráfico de vendas — 7 dias
     function atualizarGrafico() {
         const canvas = document.getElementById('salesChart');
-        if (!canvas) return;
+        if (!canvas || !canvas.width) return;
         const ctx = canvas.getContext('2d');
         const w = canvas.width, h = canvas.height;
         ctx.clearRect(0, 0, w, h);
 
         const dias = Array.from({length: 7}, (_, i) => {
-            const d = new Date(); d.setDate(d.getDate() - i);
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
             return d.toLocaleDateString('pt-PT');
-        }).reverse();
+        });
 
         const valores = dias.map(dia =>
             logs.filter(l => new Date(l.data).toLocaleDateString('pt-PT') === dia && (l.tipo === 'VENDA' || l.tipo === 'FIADO'))
-                .reduce((a, b) => a + (b.qtd * b.preco), 0)
+                .reduce((a,b) => a + (b.qtd * b.preco), 0)
         );
 
         const max  = Math.max(...valores, 500);
         const barW = (w / 7) - 12;
 
         valores.forEach((v, i) => {
-            const barH = (v / max) * (h - 20);
+            const barH = Math.max((v / max) * (h - 20), v > 0 ? 4 : 0);
             ctx.fillStyle = i === 6 ? '#2563eb' : '#f1f5f9';
             ctx.beginPath();
             ctx.roundRect(i * (w / 7) + 6, h - barH, barW, barH, 6);
@@ -719,7 +910,7 @@
         });
     }
 
-    // Relógio + ResizeObserver no gráfico
+    // Relógio
     setInterval(() => {
         const r = document.getElementById('relogio');
         if (r) r.innerText = new Date().toLocaleTimeString('pt-PT');
