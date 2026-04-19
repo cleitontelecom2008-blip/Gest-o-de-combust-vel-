@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UltraDepósito Cloud - v4.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase Compat SDK (funciona em HTML puro, sem build) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .neo-card { background: #ffffff; border: 1px solid rgba(226, 232, 240, 1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); border-radius: 24px; transition: all 0.2s; }
+        .neo-card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04); }
+        .btn-primary { background: #1d4ed8; transition: all 0.2s; }
+        .btn-primary:hover:not(:disabled) { background: #1e40af; transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-hidden { display: none; }
+        .modal-visible { display: flex; align-items: center; justify-content: center; z-index: 100; }
+        #toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+        .toast { padding: 12px 24px; border-radius: 20px; color: white; font-weight: 700; font-size: 13px; animation: slideDown 0.3s ease-out; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.1); }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        canvas { width: 100% !important; height: 140px !important; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        #loadingScreen { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- LOADING SCREEN -->
+    <div id="loadingScreen">
+        <div class="spinner"></div>
+        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">A ligar ao servidor...</p>
+    </div>
+
+    <div id="app" class="hidden">
+
+        <div id="toast-container"></div>
+
+        <!-- HEADER -->
+        <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 px-6 py-3">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                        <i data-lucide="box" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-800 text-lg tracking-tight leading-none">UltraDepósito <span class="text-blue-600">Cloud</span></h1>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Enterprise Edition v4.0</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex flex-col items-end mr-2">
+                        <span id="relogio" class="text-xs font-black text-slate-700">00:00:00</span>
+                        <div class="flex items-center gap-1">
+                            <span id="syncDot" class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                            <span id="syncLabel" class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">A ligar...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto p-6 space-y-6">
+            
+            <!-- DASHBOARD -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="neo-card p-6 border-b-4 border-blue-600">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-[10px] font-800 text-slate-400 uppercase">Vendas Hoje</p>
+                            <i data-lucide="shopping-cart" class="w-4 h-4 text-blue-600"></i>
+                        </div>
+                        <h3 id="dashVendasHoje" class="text-2xl font-800">R$ 0,00</h3>
+                        <div id="dashLucroHoje" class="text-[10px] font-bold text-emerald-600 mt-2 bg-emerald-50 w-fit px-2 py-0.5 rounded-lg">Lucro: R$ 0,00</div>
+                    </div>
+                    <div class="neo-card p-6 border-b-4 border-rose-500">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-[10px] font-800 text-slate-400 uppercase">Fiados Ativos</p>
+                            <i data-lucide="users" class="w-4 h-4 text-rose-500"></i>
+                        </div>
+                        <h3 id="dashFiado" class="text-2xl font-800 text-rose-600">R$ 0,00</h3>
+                        <p class="text-[10px] font-bold text-slate-400 mt-2 uppercase">Dívidas pendentes</p>
+                    </div>
+                    <div class="neo-card p-6 border-b-4 border-slate-900">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-[10px] font-800 text-slate-400 uppercase">Inv. Stock (Custo)</p>
+                            <i data-lucide="database" class="w-4 h-4 text-slate-800"></i>
+                        </div>
+                        <h3 id="dashPatrimonio" class="text-2xl font-800">R$ 0,00</h3>
+                        <p class="text-[10px] font-bold text-slate-400 mt-2 uppercase">Património atual</p>
+                    </div>
+                </div>
+                <div class="lg:col-span-4 neo-card p-6">
+                    <p class="text-[10px] font-800 text-slate-400 uppercase mb-4">Volume de Vendas (7 dias)</p>
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- PDV -->
+                <div class="lg:col-span-4 space-y-6">
+                    <section class="neo-card p-8 border-t-8 border-blue-600 shadow-xl shadow-blue-50">
+                        <h2 class="text-xl font-800 mb-6 flex items-center gap-2">
+                            <i data-lucide="zap" class="text-blue-600 fill-blue-600"></i> Terminal PDV
+                        </h2>
+                        <div class="space-y-5">
+                            <div class="flex gap-1 bg-slate-100 p-1.5 rounded-2xl">
+                                <button onclick="setModo('VENDA')" id="btnVenda" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-blue-700">VENDA</button>
+                                <button onclick="setModo('ENTRADA')" id="btnEntrada" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">STOCK</button>
+                                <button onclick="setModo('FIADO')" id="btnFiado" class="flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400">FIADO</button>
+                            </div>
+                            <div id="clienteContainer" class="hidden">
+                                <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Cliente</label>
+                                <input type="text" id="pdvCliente" class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none" placeholder="Nome do devedor">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Artigo</label>
+                                <select id="pdvProduto" onchange="atualizarPrecoPdv()" class="w-full mt-1 p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl font-bold outline-none cursor-pointer"></select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Qtd</label>
+                                    <!-- FIX: onkeydown (não deprecated) -->
+                                    <input type="number" id="pdvQtd" value="1" min="1" class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black focus:ring-2 ring-blue-600 outline-none" onkeydown="if(event.key==='Enter') confirmarOperacao()">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Preço Un.</label>
+                                    <input type="number" id="pdvPreco" step="0.01" class="w-full mt-1 p-4 bg-slate-50 border rounded-2xl font-black text-blue-700 outline-none">
+                                </div>
+                            </div>
+                            <button id="btnConfirmarPDV" onclick="confirmarOperacao()" class="w-full btn-primary text-white py-5 rounded-[22px] font-800 flex items-center justify-center gap-3 shadow-xl shadow-blue-100 active:scale-95">
+                                REGISTAR TRANSAÇÃO
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- FIADOS -->
+                    <section class="neo-card p-8 bg-slate-900 text-white">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xs font-800 uppercase tracking-widest text-blue-400">Carteira de Fiados</h2>
+                            <i data-lucide="user-minus" class="w-4 h-4"></i>
+                        </div>
+                        <div id="listaDevedores" class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scroll"></div>
+                    </section>
+                </div>
+
+                <!-- STOCK -->
+                <div class="lg:col-span-8">
+                    <section class="neo-card p-8 min-h-[600px]">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+                            <div>
+                                <h2 class="text-2xl font-800">Inventário Geral</h2>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sincronizado em tempo real</p>
+                            </div>
+                            <button onclick="abrirModalProduto()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-800 flex items-center gap-3 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                                <i data-lucide="plus-circle"></i> NOVO ARTIGO
+                            </button>
+                        </div>
+                        <div id="gridStock" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- LEDGER -->
+            <section class="neo-card p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-lg font-800 flex items-center gap-3">
+                        <i data-lucide="shield-check" class="text-blue-600"></i> Histórico de Auditoria
+                    </h2>
+                    <button onclick="abrirModalConfirmacao()" class="text-[10px] font-black text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 transition-all">LIMPAR LOGS</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="text-[10px] text-slate-400 uppercase font-800 border-b border-slate-50">
+                            <tr>
+                                <th class="pb-4 pl-4">Timestamp</th>
+                                <th class="pb-4">Operação</th>
+                                <th class="pb-4">Detalhes</th>
+                                <th class="pb-4 text-center">Vol.</th>
+                                <th class="pb-4 text-right pr-4">Financeiro</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaLogs" class="divide-y divide-slate-50 text-sm"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+    </div><!-- /app -->
+
+    <!-- MODAL PRODUTO -->
+    <div id="modalProduto" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden p-6">
+        <div class="bg-white rounded-[40px] p-10 w-full max-w-lg shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-blue-600"></div>
+            <h3 id="modalTitle" class="text-2xl font-800 mb-8">Ficha de Artigo</h3>
+            <input type="hidden" id="mId">
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Nome do Produto</label>
+                    <input type="text" id="mNome" class="w-full mt-1 p-5 bg-slate-50 border rounded-[22px] font-bold focus:ring-4 ring-blue-50 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Custo Médio</label>
+                        <input type="number" id="mCusto" step="0.01" class="w-full mt-1 p-5 bg-slate-50 border rounded-[22px] font-black text-blue-700">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Venda Final</label>
+                        <input type="number" id="mVenda" step="0.01" class="w-full mt-1 p-5 bg-slate-50 border rounded-[22px] font-black text-emerald-600">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Qtd Inicial</label>
+                        <input type="number" id="mQtd" class="w-full mt-1 p-5 bg-slate-50 border rounded-[22px] font-black">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-800 text-slate-400 uppercase ml-2">Stock Mínimo</label>
+                        <input type="number" id="mMin" class="w-full mt-1 p-5 bg-slate-50 border rounded-[22px] font-black">
+                    </div>
+                </div>
+                <div class="flex gap-4 pt-6">
+                    <button onclick="fecharModalProduto()" class="flex-1 py-5 bg-slate-100 rounded-[25px] font-800 text-slate-500 hover:bg-slate-200">CANCELAR</button>
+                    <button onclick="salvarProduto()" class="flex-[2] py-5 bg-blue-600 text-white rounded-[25px] font-800 shadow-xl shadow-blue-100">CONFIRMAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PAGAMENTO FIADO -->
+    <div id="modalPagamento" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden p-6">
+        <div class="bg-white rounded-[40px] p-10 w-full max-w-sm shadow-2xl text-center">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="hand-coins" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-800 mb-2">Abater Dívida</h3>
+            <p id="pagamentoNome" class="text-slate-400 text-sm font-bold mb-6">---</p>
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-800 text-slate-400 uppercase">Valor a Receber (R$)</label>
+                    <input type="number" id="pagamentoValor" step="0.01" class="w-full mt-2 p-5 bg-slate-50 border-2 border-emerald-500 rounded-[22px] font-black text-2xl text-center outline-none">
+                    <p id="pagamentoMax" class="text-[10px] font-bold text-slate-400 mt-2 uppercase">Dívida Total: R$ 0,00</p>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="fecharModalPagamento()" class="flex-1 py-4 bg-slate-100 rounded-[20px] font-800 text-slate-500">VOLTAR</button>
+                    <button onclick="processarPagamento()" class="flex-[2] py-4 bg-emerald-600 text-white rounded-[20px] font-800 shadow-lg shadow-emerald-100">CONFIRMAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAÇÃO (limpar logs) -->
+    <div id="modalConfirmacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden p-6">
+        <div class="bg-white rounded-[40px] p-10 w-full max-w-sm shadow-2xl text-center">
+            <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="trash-2" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-800 mb-2">Limpar Registos</h3>
+            <p class="text-slate-400 text-sm font-bold mb-8">Todos os logs de auditoria serão eliminados. O stock e os fiados não serão afetados.</p>
+            <div class="flex gap-4">
+                <button onclick="fecharModalConfirmacao()" class="flex-1 py-4 bg-slate-100 rounded-[20px] font-800 text-slate-500 hover:bg-slate-200">CANCELAR</button>
+                <button onclick="confirmarLimparHistorico()" class="flex-[2] py-4 bg-rose-600 text-white rounded-[20px] font-800 shadow-lg shadow-rose-100 hover:bg-rose-700">CONFIRMAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    // FIREBASE CONFIG — substitui pelos teus dados reais
+    // ============================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPq8-B4l-kThTXtX9CVBTdpzarBObUYxI",
+        authDomain: "ch-geladas.firebaseapp.com",
+        projectId: "ch-geladas",
+        storageBucket: "ch-geladas.firebasestorage.app",
+        messagingSenderId: "859746983655",
+        appId: "1:859746983655:web:d126d82167b0ccab3a8c42"
+    };
+
+    // Caminhos Firestore (alinhados com ecossistema CH Geladas)
+    const APP_ID   = 'ultra-deposito';
+    const BASE     = `deposito`; // raiz isolada para não colidir com outros módulos
+    const COL_PROD = `${BASE}/dados/produtos`;
+    const COL_LOGS = `${BASE}/dados/logs`;
+    const DOC_FIAD = `${BASE}/dados/financeiro/fiado`;
+
+    // ============================================================
+    // ESTADO LOCAL (cache dos listeners em tempo real)
+    // ============================================================
+    let produtos    = [];
+    let logs        = [];
+    let fiado       = {};
+    let modoAtual   = 'VENDA';
+    let currentFiadoUser  = null;
+    let estaProcessando   = false;
+    let unsubscribers     = [];
+
+    // ============================================================
+    // INIT FIREBASE
+    // ============================================================
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const fstore = firebase.firestore();
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            setSyncStatus('online');
+            iniciarListeners();
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('app').classList.remove('hidden');
+        }
+    });
+
+    auth.signInAnonymously().catch(err => {
+        setSyncStatus('offline');
+        showToast('Erro de autenticação Firebase', 'error');
+    });
+
+    // ============================================================
+    // LISTENERS EM TEMPO REAL
+    // ============================================================
+    function iniciarListeners() {
+        // Cancelar listeners anteriores
+        unsubscribers.forEach(fn => fn());
+        unsubscribers = [];
+
+        // Produtos
+        unsubscribers.push(
+            fstore.collection(COL_PROD).onSnapshot(snap => {
+                produtos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizar();
+            }, () => showToast('Erro ao sincronizar produtos', 'error'))
+        );
+
+        // Logs (últimos 50, ordenados por data desc)
+        unsubscribers.push(
+            fstore.collection(COL_LOGS)
+                .orderBy('data', 'desc')
+                .limit(50)
+                .onSnapshot(snap => {
+                    logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderizar();
+                }, () => showToast('Erro ao sincronizar logs', 'error'))
+        );
+
+        // Fiado
+        unsubscribers.push(
+            fstore.doc(DOC_FIAD).onSnapshot(snap => {
+                fiado = snap.exists ? snap.data() : {};
+                renderizar();
+            }, () => showToast('Erro ao sincronizar fiados', 'error'))
+        );
+    }
+
+    // ============================================================
+    // RENDER (só UI — dados vêm dos listeners)
+    // ============================================================
+    function renderizar() {
+        const stats = calcularStats();
+
+        document.getElementById('dashVendasHoje').innerText  = `R$ ${stats.vendasHoje.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
+        document.getElementById('dashLucroHoje').innerText   = `Lucro Hoje: R$ ${stats.lucroHoje.toFixed(2)}`;
+        document.getElementById('dashFiado').innerText       = `R$ ${stats.totalFiado.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
+        document.getElementById('dashPatrimonio').innerText  = `R$ ${stats.patrimonio.toLocaleString('pt-PT', {minimumFractionDigits:2})}`;
+
+        // Select PDV
+        const select = document.getElementById('pdvProduto');
+        const atual  = select.value;
+        select.innerHTML = [...produtos]
+            .sort((a,b) => a.nome.localeCompare(b.nome))
+            .map(p => `<option value="${p.id}" ${p.id === atual ? 'selected' : ''}>${p.nome} (Disp: ${p.qtd})</option>`)
+            .join('');
+        if(!atual && produtos.length > 0) atualizarPrecoPdv();
+
+        // Grid Stock
+        document.getElementById('gridStock').innerHTML = [...produtos]
+            .sort((a,b) => a.nome.localeCompare(b.nome))
+            .map(p => `
+            <div class="neo-card p-6 ${p.qtd <= p.min ? 'border-rose-200 bg-rose-50/20' : 'border-slate-100'}">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex-1 overflow-hidden">
+                        <h4 class="font-800 text-slate-800 truncate text-sm" title="${p.nome}">${p.nome}</h4>
+                        <span class="text-[10px] font-black text-emerald-600 block mt-1">VENDA: R$ ${p.venda.toFixed(2)}</span>
+                    </div>
+                    <button onclick="editarProduto('${p.id}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <span class="text-4xl font-black tracking-tighter ${p.qtd <= p.min ? 'text-rose-600' : 'text-slate-900'}">${p.qtd}</span>
+                        <span class="text-[9px] font-800 text-slate-400 block uppercase tracking-widest">Unidades</span>
+                    </div>
+                    <div class="flex flex-col items-end gap-3">
+                        <div class="flex gap-1.5">
+                            <button onclick="ajusteRapido('${p.id}', -1)" class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-rose-50 hover:text-rose-600 font-bold transition-all">-</button>
+                            <button onclick="ajusteRapido('${p.id}', 1)"  class="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl hover:bg-blue-50 hover:text-blue-600 font-bold transition-all">+</button>
+                        </div>
+                        <span class="text-[8px] font-black px-2 py-0.5 bg-slate-100 rounded-lg text-slate-500 uppercase">
+                            Lucro: ${(((p.venda - p.custo) / p.venda) * 100).toFixed(0)}%
+                        </span>
+                    </div>
+                </div>
+                ${p.qtd <= p.min ? '<div class="mt-4 text-[8px] font-black text-rose-500 uppercase tracking-widest text-center py-1 bg-rose-100 rounded-lg">Reposição Necessária</div>' : ''}
+            </div>
+        `).join('');
+
+        // Fiados
+        const devedores = Object.entries(fiado).filter(([_,v]) => v > 0);
+        document.getElementById('listaDevedores').innerHTML = devedores.length
+            ? devedores.map(([nome, valor]) => `
+                <div class="flex justify-between items-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all">
+                    <div class="overflow-hidden">
+                        <p class="text-xs font-black truncate pr-2">${nome}</p>
+                        <p class="text-[10px] text-rose-400 font-black mt-0.5 italic">Débito: R$ ${valor.toFixed(2)}</p>
+                    </div>
+                    <button onclick="abrirModalPagamento('${nome}', ${valor})" class="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all">RECEBER</button>
+                </div>`).join('')
+            : '<p class="text-[10px] text-slate-500 italic text-center py-4">Sem contas pendentes.</p>';
+
+        // Ledger
+        document.getElementById('listaLogs').innerHTML = logs.map(l => `
+            <tr class="hover:bg-slate-50 transition-all">
+                <td class="py-4 pl-4 text-[10px] font-mono text-slate-400">${new Date(l.data).toLocaleTimeString('pt-PT')}</td>
+                <td class="py-4">
+                    <span class="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase border ${
+                        l.tipo === 'VENDA'     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        l.tipo === 'FIADO'     ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                        l.tipo === 'AJUSTE'    ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        l.tipo === 'PAGAMENTO' ? 'bg-emerald-500 text-white border-transparent' :
+                                                 'bg-blue-50 text-blue-700 border-blue-200'
+                    }">${l.tipo}</span>
+                </td>
+                <td class="py-4 font-800 text-slate-700">
+                    ${l.nome}
+                    ${l.cliente ? `<span class="text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded ml-2">C: ${l.cliente}</span>` : ''}
+                </td>
+                <td class="py-4 text-center font-black text-xs">${l.qtd}</td>
+                <td class="py-4 text-right pr-4 font-black ${l.tipo === 'ENTRADA' ? 'text-blue-600' : 'text-slate-900'}">
+                    R$ ${(l.qtd * (l.preco || 0)).toFixed(2)}
+                </td>
+            </tr>
+        `).join('');
+
+        atualizarGrafico();
+        lucide.createIcons();
+    }
+
+    // ============================================================
+    // STATS
+    // ============================================================
+    function calcularStats() {
+        const hoje       = new Date().toDateString();
+        const logsHoje   = logs.filter(l => new Date(l.data).toDateString() === hoje && (l.tipo === 'VENDA' || l.tipo === 'FIADO'));
+        const vendasHoje = logsHoje.reduce((a, b) => a + (b.qtd * b.preco), 0);
+        const lucroHoje  = logsHoje.reduce((a, b) => a + (b.qtd * (b.preco - (b.custoNoMomento || 0))), 0);
+        const totalFiado = Object.values(fiado).reduce((a, b) => a + b, 0);
+        const patrimonio = produtos.reduce((a, b) => a + (b.qtd * b.custo), 0);
+        return { vendasHoje, lucroHoje, totalFiado, patrimonio };
+    }
+
+    // ============================================================
+    // OPERAÇÕES FIRESTORE
+    // ============================================================
+    async function confirmarOperacao() {
+        if (estaProcessando) return;
+
+        const prodId    = document.getElementById('pdvProduto').value;
+        const qtd       = parseInt(document.getElementById('pdvQtd').value);
+        const precoMan  = parseFloat(document.getElementById('pdvPreco').value);
+        const cliente   = document.getElementById('pdvCliente').value.trim();
+        const p         = produtos.find(x => x.id === prodId);
+
+        if (!p || isNaN(qtd) || qtd <= 0) return showToast("Valores inválidos!", "error");
+        if (modoAtual === 'FIADO' && !cliente)  return showToast("Indique o cliente!", "error");
+
+        estaProcessando = true;
+        document.getElementById('btnConfirmarPDV').disabled = true;
+
+        try {
+            const custoNoMomento = p.custo;
+            const preco = isNaN(precoMan) ? (modoAtual === 'ENTRADA' ? p.custo : p.venda) : precoMan;
+            const prodRef = fstore.collection(COL_PROD).doc(p.id);
+
+            if (modoAtual === 'VENDA' || modoAtual === 'FIADO') {
+                if (p.qtd < qtd) return showToast("Stock insuficiente!", "error");
+                await prodRef.update({ qtd: firebase.firestore.FieldValue.increment(-qtd) });
+
+                if (modoAtual === 'FIADO') {
+                    const novoValor = (fiado[cliente] || 0) + (qtd * preco);
+                    await fstore.doc(DOC_FIAD).set({ ...fiado, [cliente]: novoValor });
+                }
+            } else if (modoAtual === 'ENTRADA') {
+                const novaQtd   = p.qtd + qtd;
+                const novoCusto = ((p.qtd * p.custo) + (qtd * preco)) / novaQtd;
+                await prodRef.update({ qtd: novaQtd, custo: novoCusto });
+            }
+
+            await fstore.collection(COL_LOGS).add({
+                tipo: modoAtual,
+                nome: p.nome,
+                cliente: modoAtual === 'FIADO' ? cliente : null,
+                qtd,
+                preco,
+                custoNoMomento,
+                data: new Date().toISOString(),
+                userId: auth.currentUser?.uid || 'anon'
+            });
+
+            document.getElementById('pdvQtd').value    = 1;
+            document.getElementById('pdvCliente').value = '';
+            showToast("Operação registada!");
+        } catch (err) {
+            showToast("Erro na Cloud: " + err.message, "error");
+        } finally {
+            estaProcessando = false;
+            document.getElementById('btnConfirmarPDV').disabled = false;
+        }
+    }
+
+    async function ajusteRapido(id, delta) {
+        const p = produtos.find(x => x.id === id);
+        if (!p || (delta < 0 && p.qtd <= 0)) return;
+        try {
+            await fstore.collection(COL_PROD).doc(id).update({
+                qtd: firebase.firestore.FieldValue.increment(delta)
+            });
+            await fstore.collection(COL_LOGS).add({
+                tipo: 'AJUSTE', nome: p.nome, qtd: delta,
+                preco: 0, custoNoMomento: p.custo,
+                data: new Date().toISOString(),
+                userId: auth.currentUser?.uid || 'anon'
+            });
+            showToast(delta > 0 ? "+1 Unidade" : "-1 Unidade");
+        } catch(err) { showToast("Erro ao ajustar", "error"); }
+    }
+
+    async function salvarProduto() {
+        const id  = document.getElementById('mId').value;
+        const dados = {
+            nome:  document.getElementById('mNome').value,
+            custo: parseFloat(document.getElementById('mCusto').value) || 0,
+            venda: parseFloat(document.getElementById('mVenda').value) || 0,
+            qtd:   parseInt(document.getElementById('mQtd').value)   || 0,
+            min:   parseInt(document.getElementById('mMin').value)   || 5
+        };
+        if (!dados.nome) return showToast("Preencha o nome!", "error");
+        try {
+            if (id) await fstore.collection(COL_PROD).doc(id).update(dados);
+            else    await fstore.collection(COL_PROD).add(dados);
+            fecharModalProduto();
+            showToast("Inventário atualizado!");
+        } catch(err) { showToast("Erro ao guardar: " + err.message, "error"); }
+    }
+
+    async function processarPagamento() {
+        const valorPago = parseFloat(document.getElementById('pagamentoValor').value);
+        if (isNaN(valorPago) || valorPago <= 0) return showToast("Valor inválido", "error");
+        const divida = fiado[currentFiadoUser] || 0;
+        if (valorPago > divida + 0.01) return showToast("Pagamento excede a dívida!", "error");
+
+        try {
+            const novoSaldo = divida - valorPago;
+            const novoFiado = { ...fiado };
+            if (novoSaldo <= 0.01) delete novoFiado[currentFiadoUser];
+            else novoFiado[currentFiadoUser] = novoSaldo;
+
+            await fstore.doc(DOC_FIAD).set(novoFiado);
+            await fstore.collection(COL_LOGS).add({
+                tipo: 'PAGAMENTO', nome: `Recebimento: ${currentFiadoUser}`,
+                qtd: 1, preco: valorPago, custoNoMomento: 0,
+                data: new Date().toISOString(),
+                userId: auth.currentUser?.uid || 'anon'
+            });
+            fecharModalPagamento();
+            showToast("Recebido com sucesso!");
+        } catch(err) { showToast("Erro no pagamento", "error"); }
+    }
+
+    async function confirmarLimparHistorico() {
+        try {
+            const batch = fstore.batch();
+            const snap  = await fstore.collection(COL_LOGS).limit(500).get();
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            fecharModalConfirmacao();
+            showToast("Logs eliminados.");
+        } catch(err) { showToast("Erro ao limpar", "error"); }
+    }
+
+    // ============================================================
+    // UI HELPERS
+    // ============================================================
+    function setModo(m) {
+        modoAtual = m;
+        ['btnVenda','btnEntrada','btnFiado'].forEach(id => {
+            const btn = document.getElementById(id);
+            const ativo = id === `btn${m.charAt(0)+m.slice(1).toLowerCase()}`;
+            btn.className = ativo
+                ? 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all bg-white shadow-sm text-blue-700'
+                : 'flex-1 py-2.5 text-[10px] font-800 rounded-xl transition-all text-slate-400';
+        });
+        document.getElementById('clienteContainer').className = m === 'FIADO' ? 'block' : 'hidden';
+        atualizarPrecoPdv();
+    }
+
+    function atualizarPrecoPdv() {
+        const p = produtos.find(x => x.id === document.getElementById('pdvProduto').value);
+        if (p) document.getElementById('pdvPreco').value = modoAtual === 'ENTRADA' ? p.custo : p.venda;
+    }
+
+    function abrirModalProduto() {
+        document.getElementById('modalTitle').innerText = 'Novo Artigo';
+        document.getElementById('mId').value = '';
+        document.querySelectorAll('#modalProduto input:not([type=hidden])').forEach(i => i.value = '');
+        document.getElementById('modalProduto').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6";
+    }
+
+    function fecharModalProduto() {
+        document.getElementById('modalProduto').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden";
+    }
+
+    function editarProduto(id) {
+        const p = produtos.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('modalTitle').innerText = 'Editar Artigo';
+        document.getElementById('mId').value    = p.id;
+        document.getElementById('mNome').value  = p.nome;
+        document.getElementById('mCusto').value = p.custo;
+        document.getElementById('mVenda').value = p.venda;
+        document.getElementById('mQtd').value   = p.qtd;
+        document.getElementById('mMin').value   = p.min;
+        document.getElementById('modalProduto').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6";
+    }
+
+    function abrirModalPagamento(nome, valor) {
+        currentFiadoUser = nome;
+        document.getElementById('pagamentoNome').innerText = nome;
+        document.getElementById('pagamentoMax').innerText  = `Dívida Total: R$ ${valor.toFixed(2)}`;
+        document.getElementById('pagamentoValor').value    = valor.toFixed(2);
+        document.getElementById('modalPagamento').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6";
+    }
+
+    function fecharModalPagamento() {
+        document.getElementById('modalPagamento').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden";
+        currentFiadoUser = null;
+    }
+
+    function abrirModalConfirmacao()  { document.getElementById('modalConfirmacao').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-visible p-6"; }
+    function fecharModalConfirmacao() { document.getElementById('modalConfirmacao').className = "fixed inset-0 bg-slate-900/60 backdrop-blur-md modal-hidden"; }
+
+    function setSyncStatus(state) {
+        const dot   = document.getElementById('syncDot');
+        const label = document.getElementById('syncLabel');
+        if (!dot) return;
+        if (state === 'online') {
+            dot.className   = 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse';
+            label.innerText = 'Firebase Sync';
+            label.className = 'text-[8px] font-bold text-emerald-500 uppercase tracking-tighter';
+        } else {
+            dot.className   = 'w-1.5 h-1.5 rounded-full bg-rose-500';
+            label.innerText = 'Sem ligação';
+            label.className = 'text-[8px] font-bold text-rose-500 uppercase tracking-tighter';
+        }
+    }
+
+    function showToast(msg, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'success' ? 'bg-emerald-600 border-emerald-400' : 'bg-rose-600 border-rose-400'}`;
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity   = '0';
+            toast.style.transform = 'translateY(-20px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // FIX: Gráfico responsivo com ResizeObserver
+    function atualizarGrafico() {
+        const canvas = document.getElementById('salesChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const dias = Array.from({length: 7}, (_, i) => {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            return d.toLocaleDateString('pt-PT');
+        }).reverse();
+
+        const valores = dias.map(dia =>
+            logs.filter(l => new Date(l.data).toLocaleDateString('pt-PT') === dia && (l.tipo === 'VENDA' || l.tipo === 'FIADO'))
+                .reduce((a, b) => a + (b.qtd * b.preco), 0)
+        );
+
+        const max  = Math.max(...valores, 500);
+        const barW = (w / 7) - 12;
+
+        valores.forEach((v, i) => {
+            const barH = (v / max) * (h - 20);
+            ctx.fillStyle = i === 6 ? '#2563eb' : '#f1f5f9';
+            ctx.beginPath();
+            ctx.roundRect(i * (w / 7) + 6, h - barH, barW, barH, 6);
+            ctx.fill();
+        });
+    }
+
+    // Relógio + ResizeObserver no gráfico
+    setInterval(() => {
+        const r = document.getElementById('relogio');
+        if (r) r.innerText = new Date().toLocaleTimeString('pt-PT');
+    }, 1000);
+
+    window.onload = () => {
+        const canvas = document.getElementById('salesChart');
+        if (canvas) {
+            canvas.width  = canvas.parentElement.offsetWidth;
+            canvas.height = 140;
+            const ro = new ResizeObserver(() => {
+                canvas.width  = canvas.parentElement.offsetWidth;
+                canvas.height = 140;
+                atualizarGrafico();
+            });
+            ro.observe(canvas.parentElement);
+        }
+    };
+    </script>
+</body>
+</html>
