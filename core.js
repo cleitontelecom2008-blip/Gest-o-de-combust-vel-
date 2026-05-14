@@ -140,6 +140,31 @@ const Utils = Object.freeze({
   deepClone(obj) {
   try { return structuredClone(obj); } catch { return JSON.parse(JSON.stringify(obj)); }
   },
+
+  /**
+   * Escapa caracteres HTML para prevenir XSS em innerHTML dinâmico.
+   * Use SEMPRE que inserir dados do Store/usuário via innerHTML.
+   * @param {any} str — valor a escapar (converte para string)
+   * @returns {string}
+   */
+  sanitize(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
+  },
+
+  /**
+   * Retorna HTML seguro para exibição de valor monetário.
+   * Ex: safeMoneyHtml(19.9) → '&lt;span&gt;R$&nbsp;19,90&lt;/span&gt;'
+   */
+  safeMoneyHtml(v) {
+    return Utils.sanitize(Utils.formatCurrency(v));
+  },
 });
 
 const CryptoService = {
@@ -398,7 +423,10 @@ const Store = (() => {
 
     const finAntes = _read('financeiro').length;
     const cortaFin = corte(diasFinanceiro);
-    const finFiltrado = _read('financeiro').filter(l => l.dataCurta >= cortaFin);
+    // Preserva registros não sincronizados independentemente da data
+    const finFiltrado = _read('financeiro').filter(l =>
+      l.dataCurta >= cortaFin || !l._fbSynced
+    );
     if (finFiltrado.length < finAntes) {
    _write('financeiro', finFiltrado);
    purged.financeiro = finAntes - finFiltrado.length;
@@ -406,7 +434,9 @@ const Store = (() => {
 
     const audAntes = _read('auditoria').length;
     const cortaAud = corte(diasAuditoria);
-    const audFiltrada = _read('auditoria').filter(r => r.dataCurta >= cortaAud);
+    const audFiltrada = _read('auditoria').filter(r =>
+      r.dataCurta >= cortaAud || !r._fbSynced
+    );
     if (audFiltrada.length < audAntes) {
    _write('auditoria', audFiltrada);
    purged.auditoria = audAntes - audFiltrada.length;
@@ -414,7 +444,9 @@ const Store = (() => {
 
     const movAntes = _read('movimentacoes').length;
     const cortaMov = corte(diasMovimentacoes);
-    const movFiltradas = _read('movimentacoes').filter(m => m.dataCurta >= cortaMov);
+    const movFiltradas = _read('movimentacoes').filter(m =>
+      m.dataCurta >= cortaMov || !m._fbSynced
+    );
     if (movFiltradas.length < movAntes) {
    _write('movimentacoes', movFiltradas);
    purged.movimentacoes = movAntes - movFiltradas.length;
@@ -1039,7 +1071,18 @@ EventBus.on('storage:quota-exceeded', (col) => {
   UIService.showToast('Armazenamento quase cheio', 'Limpando dados antigos automaticamente...', 'warning');
 });
 EventBus.on('storage:critical', (col) => {
-  UIService.showToast('Armazenamento crítico', 'Faça backup agora. Dados em memória apenas.', 'error');
+  UIService.showToast('⚠️ Armazenamento crítico', 'Dado NÃO salvo localmente. Faça backup agora!', 'error');
+  // Tenta forçar sync imediato para garantir que o dado vai ao Firestore
+  setTimeout(() => {
+    if (window.CH?.SyncQueue) window.CH.SyncQueue.processar().catch(() => {});
+    if (window.CH?.SyncService) window.CH.SyncService.push().catch(() => {});
+  }, 500);
+  // Aviso persistente no console para o operador
+  console.error(
+    '%c[STORAGE CRÍTICO] Dado salvo APENAS em memória — reiniciar a aba pode causar PERDA DE DADOS.',
+    'background:#ef4444;color:#fff;font-weight:bold;padding:4px 8px;border-radius:4px',
+    'Coleção afetada:', col
+  );
 });
 
 const CartService = (() => {

@@ -44,9 +44,23 @@ service cloud.firestore {
     //  FUNÇÕES AUXILIARES GLOBAIS
     // ════════════════════════════════════════════════════════════════
 
-    /** Qualquer usuário autenticado (anônimo incluso) */
+    /**
+     * Qualquer usuário autenticado (anônimo incluso).
+     * NOTA: signInAnonymously() ainda é aceito para manter compatibilidade
+     * com o modo standalone. A segurança real vem de temAdminToken() nas
+     * operações de escrita. Reads em ch_dados requerem adminToken a partir de v5.
+     */
     function autenticado() {
       return request.auth != null;
+    }
+
+    /**
+     * Usuário com UID persistente (não anônimo).
+     * Usado nas coleções SaaS onde auth real é obrigatória.
+     */
+    function autenticadoReal() {
+      return request.auth != null
+          && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
     /** Documento ch_dados: exige campos 'dados' e 'ts' */
@@ -150,95 +164,62 @@ service cloud.firestore {
     // ════════════════════════════════════════════════════════════════
 
     // ── /saas_empresas/{empresaId} ───────────────────────────────────
+    // CORREÇÃO v5: exige autenticadoReal() (não anônima) em todas as
+    // coleções SaaS — protege dados de empresas de usuários anônimos.
     match /saas_empresas/{empresaId} {
-      // Qualquer autenticado pode ler (necessário para verificar se
-      // empresa existe durante login/registro)
-      allow read: if autenticado();
+      allow read: if autenticadoReal();
 
-      // Criação livre (onboarding): qualquer autenticado pode criar
-      // uma empresa nova. O SaasService verifica duplicata via getDoc.
-      allow create: if autenticado()
+      allow create: if autenticadoReal()
                     && request.resource.data.keys().hasAll(['id','nome','plano','ownerId','ativo','criadoEm'])
                     && request.resource.data.id == empresaId
                     && request.resource.data.ativo == true;
 
-      // Update: apenas se o documento já existe e o campo ownerId
-      // corresponde ao UID autenticado (ou se há adminToken).
-      // Nota: auth anônimo não carrega claims customizados, então
-      // a validação de dono é feita no lado do app + adminToken.
-      allow update: if autenticado()
+      allow update: if autenticadoReal()
                     && (
-                      // Dono via adminToken
                       temAdminToken(request.resource.data)
                       ||
-                      // Atualização de campo não-crítico (vendasMes, mesRef)
-                      // sem alterar ownerId, plano ou ativo
-                      (
-                        !request.resource.data.diff(resource.data).affectedKeys()
-                          .hasAny(['ownerId', 'id'])
-                      )
+                      !request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['ownerId', 'id'])
                     );
 
-      allow delete: if autenticado()
+      allow delete: if autenticadoReal()
                     && temAdminToken(request.resource.data);
     }
 
     // ── /saas_usuarios/{uid} ─────────────────────────────────────────
-    // CORREÇÃO v4: impede que um tenant leia usuários de outra empresa
+    // Auth real obrigatória — protege lista de usuários de empresas.
     match /saas_usuarios/{uid} {
-      // Leitura: qualquer autenticado pode ler (necessário para login —
-      // busca por query empresaId). Controle de acesso no app.
-      // TODO: quando Cloud Functions disponível, usar callable function
-      // para login e tornar esta coleção privada.
-      allow read: if autenticado();
+      allow read: if autenticadoReal();
 
-      // Criação: campos obrigatórios + empresaId no documento
-      allow create: if autenticado()
+      allow create: if autenticadoReal()
                     && request.resource.data.keys().hasAll(['id','empresaId','nome','senhaHash','role','ativo','criadoEm'])
                     && request.resource.data.id == uid
                     && request.resource.data.ativo == true;
 
-      // Update: apenas adminToken (admin da empresa) pode editar usuários
-      allow update: if autenticado()
+      allow update: if autenticadoReal()
                     && temAdminToken(request.resource.data)
-                    // Não permite alterar o empresaId de um usuário existente
                     && request.resource.data.empresaId == resource.data.empresaId;
 
-      allow delete: if autenticado()
+      allow delete: if autenticadoReal()
                     && temAdminToken(request.resource.data);
     }
 
     // ── /saas_convites/{codigo} ──────────────────────────────────────
-    // CORREÇÃO v4: valida estrutura do convite
     match /saas_convites/{codigo} {
-      allow read:   if autenticado();
-      allow create: if autenticado()
+      allow read:   if autenticadoReal();
+      allow create: if autenticadoReal()
                     && conviteValido(request.resource.data);
       allow update,
-            delete: if autenticado()
+            delete: if autenticadoReal()
                     && temAdminToken(request.resource.data);
     }
 
     // ── /saas_dados/{empresaId}/{colecao}/{docId} ────────────────────
-    //
-    // CORREÇÃO CRÍTICA v4:
-    //   Antes:  allow read, write: if autenticado()
-    //   Depois: isolamento por empresaId via campo no documento
-    //
-    // Como o sistema usa auth anônima (sem custom claims de empresaId),
-    // a verificação primária é feita no app. Aqui garantimos que:
-    //   1. O usuário está autenticado
-    //   2. Em writes, o documento contém o empresaId correto no path
-    //
-    // Isso impede que um cliente com auth anônima de empresa A escreva
-    // em saas_dados/empresa_B mesmo que descubra o ID.
-    //
+    // Auth real + isolamento por empresaId.
     match /saas_dados/{empresaId}/{colecao}/{docId} {
-      allow read: if autenticado();
+      allow read: if autenticadoReal();
 
-      // Escrita: exige que o documento contenha empresaId = o do path
-      // ou que tenha adminToken (para operações de admin via batch)
-      allow write: if autenticado()
+      allow write: if autenticadoReal()
                    && (
                      temAdminToken(request.resource.data)
                      ||
@@ -246,8 +227,6 @@ service cloud.firestore {
                        request.resource.data.keys().hasAny(['empresaId'])
                        && request.resource.data.empresaId == empresaId
                      )
-                     // Documentos sem campo empresaId (ex: arrays serializados)
-                     // são permitidos se vierem de dentro do mesmo path
                      || !request.resource.data.keys().hasAny(['empresaId'])
                    );
     }
