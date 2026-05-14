@@ -492,6 +492,13 @@
     // CMV e margem (30 dias)
     const cmv30 = getCMV(de30, hoje);
 
+    // ── Qualidade dos dados de custo ──────────────────────────────
+    const todasVendas30 = _vendasPeriodo(de30, hoje);
+    const vendasSemCusto = todasVendas30.filter(v => v._custoIncompleto).length;
+    const pctSemCusto = todasVendas30.length > 0
+      ? (vendasSemCusto / todasVendas30.length) * 100 : 0;
+    const custoDadosConfiavel = pctSemCusto < 10; // < 10% das vendas sem custo = ok
+
     // Curva ABC (90 dias)
     const abc = getCurvaABC(90);
 
@@ -547,12 +554,20 @@
         capitalParado:  parados.capitalParado,
         produtosParados:parados.total,
       },
-      alertas: _gerarAlertas({ cmv30, estoqueBaixo, estoqueZerado, parados }),
+      qualidadeDados: {
+        custoDadosConfiavel,
+        pctVendasSemCusto: Math.round(pctSemCusto),
+        vendasSemCusto,
+        aviso: !custoDadosConfiavel
+          ? `⚠️ ${Math.round(pctSemCusto)}% das vendas (30d) têm produtos sem custo — CMV e margem podem estar incorretos`
+          : null,
+      },
+      alertas: _gerarAlertas({ cmv30, estoqueBaixo, estoqueZerado, parados, pctSemCusto }),
     };
   }
 
   // ── Alertas inteligentes ──────────────────────────────────────────
-  function _gerarAlertas({ cmv30, estoqueBaixo, estoqueZerado, parados }) {
+  function _gerarAlertas({ cmv30, estoqueBaixo, estoqueZerado, parados, pctSemCusto = 0 }) {
     const alertas = [];
 
     if (estoqueZerado.length > 0)
@@ -563,6 +578,11 @@
       alertas.push({ tipo: 'critical', icone: '💸', msg: `CMV alto: ${cmv30.percentualCMV.toFixed(1)}% — margem comprometida` });
     if (parados.total > 5)
       alertas.push({ tipo: 'info', icone: '📦', msg: `${parados.total} produto(s) sem venda há 30+ dias (capital parado: ${Utils.formatCurrency(parados.capitalParado)})` });
+    // ── Alerta de qualidade de dados ────────────────────────────────
+    if (pctSemCusto >= 30)
+      alertas.push({ tipo: 'critical', icone: '📊', msg: `${Math.round(pctSemCusto)}% das vendas não têm custo cadastrado — CMV e margem estão INCORRETOS. Cadastre o preço de custo nos produtos.` });
+    else if (pctSemCusto >= 10)
+      alertas.push({ tipo: 'warning', icone: '📊', msg: `${Math.round(pctSemCusto)}% das vendas sem custo — BI pode estar subestimando o CMV.` });
 
     return alertas;
   }

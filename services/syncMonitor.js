@@ -16,7 +16,7 @@
  */
 
 (function () {
-  const { EventBus, UIService } = window.CH;
+  const { EventBus } = window.CH;
 
   // ── Estado ────────────────────────────────────────────────────────
   let _estado   = navigator.onLine ? 'pendente' : 'offline'; // 'ok' | 'enviando' | 'pendente' | 'offline' | 'erro'
@@ -182,12 +182,12 @@
 
   window.addEventListener('offline', () => {
     _setEstado('offline');
-    UIService?.showToast('Sem internet', 'Operando offline — dados serão sincronizados ao reconectar.', 'warning');
+    window.showToast?.('Sem internet', 'Operando offline — dados serão sincronizados ao reconectar.', 'warning');
   });
 
   window.addEventListener('online', () => {
     _setEstado('pendente');
-    UIService?.showToast('Internet restaurada', 'Sincronizando dados...', 'info');
+    window.showToast?.('Internet restaurada', 'Sincronizando dados...', 'info');
     setTimeout(_verificarFila, 2000);
   });
 

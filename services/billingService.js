@@ -185,6 +185,11 @@
 
       // Atualiza featureflags em memória
       window.CH?.FeatureFlags?.setPlano?.(planoId);
+
+      // Define próximo vencimento automaticamente
+      const ciclo = pedido?.ciclo || 'mensal';
+      const proxVenc = _setProximoVencimento(ciclo);
+      console.info('[BillingService] Próximo vencimento definido:', proxVenc);
     }
 
     EventBus.emit('billing:confirmado', { pedidoId, planoId });
@@ -207,6 +212,76 @@
 
   function getPrecos() { return PRECOS; }
 
+  // ── Verificação automática de vencimento ────────────────────────
+  /**
+   * Verifica se o plano pago está vencido (sem pagamento confirmado no ciclo atual).
+   * Retorna { vencido: bool, diasRestantes: number, mensagem: string }
+   *
+   * Lógica:
+   *   - plano 'free' nunca vence
+   *   - plano pago: lê cfg.billing.proximoVencimento
+   *   - se hoje >= vencimento: emite 'billing:vencido' e faz downgrade para 'free'
+   *   - se hoje >= vencimento - 3 dias: emite 'billing:aviso-vencimento'
+   */
+  function verificarVencimento() {
+    const cfg = Store.getConfig()?.billing || {};
+    const planoAtual = window.CH?.SaasService?.getSession?.()?.plano || Store.getConfig()?.plano || 'free';
+
+    if (planoAtual === 'free') return { vencido: false, diasRestantes: Infinity, mensagem: null };
+
+    const venc = cfg.proximoVencimento; // formato 'YYYY-MM-DD'
+    if (!venc) return { vencido: false, diasRestantes: null, mensagem: 'Sem data de vencimento registrada' };
+
+    const hoje      = new Date();
+    const dataVenc  = new Date(venc + 'T00:00:00');
+    const diffMs    = dataVenc - hoje;
+    const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diasRestantes <= 0) {
+      // Plano vencido — downgrade para free no contexto local
+      console.warn('[BillingService] Plano vencido em', venc, '— fazendo downgrade para free');
+      Store.mutateConfig(cfg => { cfg.plano = 'free'; });
+      if (window.CH?.FeatureFlags?.setPlano) window.CH.FeatureFlags.setPlano('free');
+      EventBus.emit('billing:vencido', { plano: planoAtual, vencimento: venc });
+      window.showToast?.(
+        '⚠️ Assinatura vencida',
+        `Plano ${planoAtual} expirou em ${new Date(venc).toLocaleDateString('pt-BR')}. Renove para continuar.`,
+        'error'
+      );
+      return { vencido: true, diasRestantes: 0, mensagem: `Plano vencido em ${new Date(venc).toLocaleDateString('pt-BR')}` };
+    }
+
+    if (diasRestantes <= 3) {
+      EventBus.emit('billing:aviso-vencimento', { diasRestantes, vencimento: venc });
+      window.showToast?.(
+        '⚠️ Assinatura expirando',
+        `Seu plano vence em ${diasRestantes} dia(s). Renove agora.`,
+        'warning'
+      );
+    }
+
+    return { vencido: false, diasRestantes, mensagem: null };
+  }
+
+  /**
+   * Define a data do próximo vencimento após confirmação de pagamento.
+   * Chamado por confirmarPagamento() automaticamente.
+   * @param {string} ciclo — 'mensal' | 'anual'
+   */
+  function _setProximoVencimento(ciclo = 'mensal') {
+    const hoje = new Date();
+    const venc = new Date(hoje);
+    if (ciclo === 'anual')  venc.setFullYear(venc.getFullYear() + 1);
+    else                    venc.setMonth(venc.getMonth() + 1);
+    const vencISO = venc.toISOString().slice(0, 10);
+    Store.mutateConfig(cfg => {
+      cfg.billing = cfg.billing || {};
+      cfg.billing.proximoVencimento = vencISO;
+      cfg.billing.ultimoPagamento   = hoje.toISOString().slice(0, 10);
+    });
+    return vencISO;
+  }
+
   // ── Configuração da chave PIX ────────────────────────────────────
   function configurarPix({ chavePix, nomeRecebedor, cidade }) {
     Store.mutateConfig(cfg => {
@@ -224,8 +299,17 @@
     getAssinaturaAtual,
     getPrecos,
     configurarPix,
+    verificarVencimento,
     gerarPixPayload: _gerarPixPayload, // exposto para testes
   };
 
-  console.info('%c BillingService ✓  (PIX QR Code | assinaturas | planos)', 'color:#10b981;font-weight:bold');
+  // ── Verificação automática ao carregar ──────────────────────────
+  // Executa 5s após init para garantir que Store e UIService estejam prontos
+  setTimeout(() => {
+    try { verificarVencimento(); } catch(e) {
+      console.warn('[BillingService] verificarVencimento falhou:', e.message);
+    }
+  }, 5000);
+
+  console.info('%c BillingService ✓  (PIX QR Code | assinaturas | vencimento automático)', 'color:#10b981;font-weight:bold');
 })();

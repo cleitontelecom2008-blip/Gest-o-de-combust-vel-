@@ -68,6 +68,17 @@
     if (!itens.length) throw new Error('Carrinho vazio');
 
     const lucro = itens.reduce((s, i) => s + (i.preco - (i.custo || 0)) * i.qtd, 0) - desconto;
+
+    // ── Detecta itens sem custo cadastrado (BI será impreciso) ────────
+    const itensSemCusto = itens.filter(i => !i.custo || Number(i.custo) === 0);
+    if (itensSemCusto.length > 0) {
+      console.warn(
+        '[VendasService] Itens sem custo cadastrado — CMV/margem do BI serão incorretos:',
+        itensSemCusto.map(i => i.nome).join(', ')
+      );
+      // Flag na venda para o BI ignorar ou sinalizar
+      // (propagado via _custoIncompleto abaixo)
+    }
     const role  = AuthService.getRole();
 
     // ── Decisão de aprovação (100% síncrona) ──────────────────────
@@ -102,6 +113,8 @@
       filialId:   window.CH?.FilialService?.getFilialId?.()   || 'principal',
       empresaId:  window.CH?.SaasService?.getEmpresaId?.()    || null,
       _formaRestante:   extras.formaRestante   || '',
+      // Flag: indica que pelo menos 1 item não tinha custo → BI deve alertar
+      _custoIncompleto: itensSemCusto.length > 0,
     };
 
     // 1. Salva no Store
